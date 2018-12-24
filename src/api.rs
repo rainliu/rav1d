@@ -38,9 +38,27 @@ pub fn rav1_init(
     return Rav1Err::Rav1ErrOK;
 }
 
+pub struct Rav1DecParam {
+    width: isize,
+    height: isize,
+    handle: isize,
+}
+
+pub struct Rav1DecFrame<'a> {
+    general: isize,
+    bitstream: &'a [u8],
+    length: isize,
+
+    image: &'a [u8],
+    stride: isize,
+    colorspace: isize,
+    structure: isize,
+    distance: isize,
+}
+
 pub enum Rav1DecoreParam<'a> {
-    Param(&'a decoder::Rav1DecParam),
-    Frame(&'a decoder::Rav1DecFrame<'a>),
+    Param(&'a Rav1DecParam),
+    Frame(&'a Rav1DecFrame<'a>),
 }
 
 pub enum Rav1DecoreParamEx {
