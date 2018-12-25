@@ -1,6 +1,8 @@
 use super::bitreader::*;
+use super::decoder::*;
 use super::global::*;
 
+#[derive(Debug, PartialEq)]
 pub enum ObuType {
     ObuSequenceHeader = 1,
     ObuTemporalDelimiter = 2,
@@ -106,7 +108,7 @@ pub fn rav1d_parse_obu_size(br: &mut BitReader) -> Result<usize, aom_codec_err_t
     Ok(value as usize)
 }
 
-pub fn rav1d_parse_obu(data: &[u8]) -> Result<(), aom_codec_err_t> {
+pub fn rav1d_parse_obu(dec: &Rav1Decoder, data: &[u8]) -> Result<(), aom_codec_err_t> {
     let mut br = BitReader::new(data, 0);
 
     let obu_header = rav1d_parse_obu_header(&mut br)?;
@@ -116,5 +118,47 @@ pub fn rav1d_parse_obu(data: &[u8]) -> Result<(), aom_codec_err_t> {
         data.len() - 1 - (obu_header.extension_flag as usize)
     };
 
+    let start_position = br.bits_read();
+    assert_eq!((start_position & 7), 0);
+
+    let operating_point_idc = 0;
+    if obu_header.obu_type != ObuType::ObuSequenceHeader
+        && obu_header.obu_type != ObuType::ObuTemporalDelimiter
+        && obu_header.extension_flag
+        && dec.operating_point_idc != 0
+    {
+        let in_temporal_layer = (dec.operating_point_idc >> obu_header.temporal_id) & 1;
+        let in_spatial_layer = (dec.operating_point_idc >> (obu_header.spatial_id + 8)) & 1;
+        if in_temporal_layer == 0 || in_spatial_layer == 0 {
+            return Ok(());
+        }
+    }
+
+    match obu_header.obu_type {
+        ObuSequenceHeader => rav1d_parse_sequence_header_obu(),
+        ObuTemporalDelimiter => rav1d_parse_temporal_delimiter_obu(),
+        ObuFrameHeader => rav1d_parse_frame_header_obu(),
+        ObuTileGroup => rav1d_parse_tile_group_obu(),
+        ObuMetadata => rav1d_parse_metadata_obu(),
+        ObuFrame => rav1d_parse_frame_obu(),
+        ObuRedundantFrameHeader => rav1d_parse_redundant_frame_header_obu(),
+        ObuTileList => rav1d_parse_tile_list_obu(),
+        ObuPadding => rav1d_parse_padding_obu(),
+    };
+
     return Ok(());
 }
+
+fn rav1d_parse_sequence_header_obu() {}
+
+fn rav1d_parse_temporal_delimiter_obu() {}
+
+fn rav1d_parse_frame_header_obu() {}
+
+fn rav1d_parse_tile_group_obu() {}
+
+fn rav1d_parse_metadata_obu() {}
+fn rav1d_parse_frame_obu() {}
+fn rav1d_parse_redundant_frame_header_obu() {}
+fn rav1d_parse_tile_list_obu() {}
+fn rav1d_parse_padding_obu() {}

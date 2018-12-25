@@ -1,6 +1,8 @@
 use super::api;
 
-pub struct Rav1Decoder {}
+pub struct Rav1Decoder {
+    pub operating_point_idc: u32,
+}
 
 pub fn rav1d_create(param: &api::Rav1DecParam) -> i32 {
     return 0;

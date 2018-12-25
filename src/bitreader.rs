@@ -14,7 +14,11 @@ impl<'a> BitReader<'a> {
     }
 
     pub fn bytes_read(&self) -> usize {
-        return (self.bit_offset + 7) >> 3;
+        (self.bit_offset + 7) >> 3
+    }
+
+    pub fn bits_read(&self) -> usize {
+        self.bit_offset
     }
 
     pub fn read_bit(&mut self) -> Result<i32, aom_codec_err_t> {
@@ -58,6 +62,6 @@ impl<'a> BitReader<'a> {
             Ok(l) => (l as u32) << nbits,
             Err(err) => return Err(err),
         };
-        return Ok((value as i32) >> nbits);
+        Ok((value as i32) >> nbits)
     }
 }
