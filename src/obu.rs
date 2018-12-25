@@ -1,4 +1,4 @@
-use super::bitreader;
+use super::bitreader::*;
 use super::global::*;
 
 pub enum ObuType {
@@ -48,23 +48,23 @@ pub struct ObuHeader {
 }
 
 // Parses OBU header and stores values in 'header'
-pub fn rav1d_parse_obu_header(rb: &mut bitreader::BitReader) -> Result<ObuHeader, aom_codec_err_t> {
-    if rb.read_bit()? != 0 {
+pub fn rav1d_parse_obu_header(br: &mut BitReader) -> Result<ObuHeader, aom_codec_err_t> {
+    if br.read_bit()? != 0 {
         // forbidden_bit must be set to 0.
         return Err(aom_codec_err_t::AOM_CODEC_CORRUPT_FRAME);
     }
 
     let obu_type: ObuType;
-    if let Some(t) = ObuType::from(rb.read_literal(4)?) {
+    if let Some(t) = ObuType::from(br.read_literal(4)?) {
         obu_type = t;
     } else {
         return Err(aom_codec_err_t::AOM_CODEC_CORRUPT_FRAME);
     }
 
-    let extension_flag = rb.read_bit()? != 0;
-    let has_size_field = rb.read_bit()? != 0;
+    let extension_flag = br.read_bit()? != 0;
+    let has_size_field = br.read_bit()? != 0;
 
-    if rb.read_bit()? != 0 {
+    if br.read_bit()? != 0 {
         // obu_reserved_1bit must be set to 0.
         return Err(aom_codec_err_t::AOM_CODEC_CORRUPT_FRAME);
     }
@@ -72,9 +72,9 @@ pub fn rav1d_parse_obu_header(rb: &mut bitreader::BitReader) -> Result<ObuHeader
     let temporal_id: u8;
     let spatial_id: u8;
     if extension_flag {
-        temporal_id = rb.read_literal(3)? as u8;
-        spatial_id = rb.read_literal(2)? as u8;
-        if rb.read_literal(3)? != 0 {
+        temporal_id = br.read_literal(3)? as u8;
+        spatial_id = br.read_literal(2)? as u8;
+        if br.read_literal(3)? != 0 {
             // extension_header_reserved_3bits must be set to 0.
             return Err(aom_codec_err_t::AOM_CODEC_CORRUPT_FRAME);
         }
@@ -92,19 +92,29 @@ pub fn rav1d_parse_obu_header(rb: &mut bitreader::BitReader) -> Result<ObuHeader
     });
 }
 
-pub fn rav1d_parse_obu(data: &[u8]) -> Result<(), aom_codec_err_t> {
-    let mut rb = bitreader::BitReader::new(data, 0);
-
-    let obu_header = rav1d_parse_obu_header(&mut rb)?;
-
-    let mut obu_size: usize = 0;
-    if obu_header.has_size_field {
-        let mut more = 1;
-        let mut i = 0;
-        while more != 0 {
-            more = rb.read_bit()?;
+// Parses OBU size
+pub fn rav1d_parse_obu_size(br: &mut BitReader) -> Result<usize, aom_codec_err_t> {
+    let mut value: u64 = 0;
+    for i in 0..8 {
+        let mut leb128_byte = br.read_unsigned_literal(8)?;
+        value |= ((leb128_byte & 0x7f) as u64) << (i * 7);
+        leb128_byte += 1;
+        if (leb128_byte & 0x80) == 0 {
+            break;
         }
     }
+    Ok(value as usize)
+}
+
+pub fn rav1d_parse_obu(data: &[u8]) -> Result<(), aom_codec_err_t> {
+    let mut br = BitReader::new(data, 0);
+
+    let obu_header = rav1d_parse_obu_header(&mut br)?;
+    let obu_size = if obu_header.has_size_field {
+        rav1d_parse_obu_size(&mut br)?
+    } else {
+        data.len() - 1 - (obu_header.extension_flag as usize)
+    };
 
     return Ok(());
 }
