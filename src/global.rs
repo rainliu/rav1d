@@ -21,6 +21,76 @@ const RAV1D_PRIMARY_REF_NONE: usize = 7;
 const RAV1D_REFS_PER_FRAME: usize = 7;
 const RAV1D_TOTAL_REFS_PER_FRAME: usize = (RAV1D_REFS_PER_FRAME + 1);
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MatrixCoefficients {
+    Identity = 0,
+    BT709,
+    Unspecified,
+    BT470M = 4,
+    BT470BG,
+    ST170M,
+    ST240M,
+    YCgCo,
+    BT2020NonConstantLuminance,
+    BT2020ConstantLuminance,
+    ST2085,
+    ChromaticityDerivedNonConstantLuminance,
+    ChromaticityDerivedConstantLuminance,
+    ICtCp,
+}
+impl Default for MatrixCoefficients {
+    fn default() -> Self {
+        MatrixCoefficients::Unspecified
+    }
+}
+
+#[derive(Debug,Clone,Copy,PartialEq)]
+pub enum ColorPrimaries {
+    BT709 = 1,
+    Unspecified,
+    BT470M = 4,
+    BT470BG,
+    ST170M,
+    ST240M,
+    Film,
+    BT2020,
+    ST428,
+    P3DCI,
+    P3Display,
+    Tech3213 = 22,
+}
+impl Default for ColorPrimaries {
+    fn default() -> Self {
+        ColorPrimaries::Unspecified
+    }
+}
+
+#[derive(Debug,Clone,Copy,PartialEq)]
+pub enum TransferCharacteristics {
+    BT1886 = 1,
+    Unspecified,
+    BT470M = 4,
+    BT470BG,
+    ST170M,
+    ST240M,
+    Linear,
+    Logarithmic100,
+    Logarithmic316,
+    XVYCC,
+    BT1361E,
+    SRGB,
+    BT2020Ten,
+    BT2020Twelve,
+    PerceptualQuantizer,
+    ST428,
+    HybridLogGamma,
+}
+impl Default for TransferCharacteristics {
+    fn default() -> Self {
+        TransferCharacteristics::Unspecified
+    }
+}
+
 #[derive(Default)]
 pub struct SequenceHeader {
     pub seq_profile: u8,
@@ -47,6 +117,7 @@ pub struct SequenceHeader {
     pub frame_id_numbers_present_flag: bool,
     pub delta_frame_id_length_minus_2: u8,
     pub additional_frame_id_length_minus_1: u8,
+    pub frame_id_length: u8,
 
     pub use_128x128_superblock: bool,
     pub enable_filter_intra: bool,

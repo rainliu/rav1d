@@ -1,7 +1,8 @@
 use super::api;
 
 pub struct Rav1Decoder {
-    pub operating_point_idc: u32,
+    pub operating_point: usize,
+    pub operating_point_idc: u16,
 }
 
 pub fn rav1d_create(param: &api::Rav1DecParam) -> i32 {

@@ -94,7 +94,7 @@ pub fn rav1d_parse_obu_header(r: &mut BitReader) -> Result<ObuHeader, Rav1dCodec
     });
 }
 
-pub fn rav1d_parse_obu(dec: &Rav1Decoder, data: &[u8]) -> Result<usize, Rav1dCodecErr> {
+pub fn rav1d_parse_obu(d: &mut Rav1Decoder, data: &[u8]) -> Result<usize, Rav1dCodecErr> {
     let mut r = BitReader::new(data);
 
     let obu_header = rav1d_parse_obu_header(&mut r)?;
@@ -108,29 +108,28 @@ pub fn rav1d_parse_obu(dec: &Rav1Decoder, data: &[u8]) -> Result<usize, Rav1dCod
     let start_byte_position = start_position >> 3;
     assert_eq!((start_position & 7), 0);
 
-    let operating_point_idc = 0;
     if obu_header.obu_type != ObuType::ObuSequenceHeader
         && obu_header.obu_type != ObuType::ObuTemporalDelimiter
         && obu_header.extension_flag
-        && dec.operating_point_idc != 0
+        && d.operating_point_idc != 0
     {
-        let in_temporal_layer = (dec.operating_point_idc >> obu_header.temporal_id) & 1;
-        let in_spatial_layer = (dec.operating_point_idc >> (obu_header.spatial_id + 8)) & 1;
+        let in_temporal_layer = (d.operating_point_idc >> obu_header.temporal_id) & 1;
+        let in_spatial_layer = (d.operating_point_idc >> (obu_header.spatial_id + 8)) & 1;
         if in_temporal_layer == 0 || in_spatial_layer == 0 {
             return Ok(obu_size + start_byte_position);
         }
     }
 
     match obu_header.obu_type {
-        ObuType::ObuSequenceHeader => rav1d_parse_sequence_header_obu(&mut r, &obu_header),
-        ObuType::ObuTemporalDelimiter => rav1d_parse_temporal_delimiter_obu(),
-        ObuType::ObuFrameHeader => rav1d_parse_frame_header_obu(),
-        ObuType::ObuTileGroup => rav1d_parse_tile_group_obu(),
-        ObuType::ObuMetadata => rav1d_parse_metadata_obu(),
-        ObuType::ObuFrame => rav1d_parse_frame_obu(),
-        ObuType::ObuRedundantFrameHeader => rav1d_parse_redundant_frame_header_obu(),
-        ObuType::ObuTileList => rav1d_parse_tile_list_obu(),
-        ObuType::ObuPadding => rav1d_parse_padding_obu(),
+        ObuType::ObuSequenceHeader => rav1d_parse_sequence_header_obu(d, &mut r, &obu_header)?,
+        ObuType::ObuTemporalDelimiter => rav1d_parse_temporal_delimiter_obu()?,
+        ObuType::ObuFrameHeader => rav1d_parse_frame_header_obu()?,
+        ObuType::ObuTileGroup => rav1d_parse_tile_group_obu()?,
+        ObuType::ObuMetadata => rav1d_parse_metadata_obu()?,
+        ObuType::ObuFrame => rav1d_parse_frame_obu()?,
+        ObuType::ObuRedundantFrameHeader => rav1d_parse_redundant_frame_header_obu()?,
+        ObuType::ObuTileList => rav1d_parse_tile_list_obu()?,
+        ObuType::ObuPadding => rav1d_parse_padding_obu()?,
     };
 
     let current_position = r.get_position();
@@ -145,11 +144,24 @@ pub fn rav1d_parse_obu(dec: &Rav1Decoder, data: &[u8]) -> Result<usize, Rav1dCod
     return Ok(obu_size + start_byte_position);
 }
 
-fn rav1d_parse_sequence_header_obu(r: &mut BitReader, oh: &ObuHeader) {
+fn rav1d_parse_sequence_header_obu(
+    d: &mut Rav1Decoder,
+    r: &mut BitReader,
+    oh: &ObuHeader,
+) -> Result<(), Rav1dCodecErr> {
     let mut sh: SequenceHeader = Default::default();
+
     sh.seq_profile = r.f(3, "seq_profile") as u8;
+    if sh.seq_profile > 2 {
+        return Err(Rav1dCodecErr::Rav1dCodecUnsupFeature);
+    }
+
     sh.still_picture = r.f(1, "still_picture") != 0;
     sh.reduced_still_picture_header = r.f(1, "reduced_still_picture_header") != 0;
+    if sh.reduced_still_picture_header && !sh.still_picture {
+        return Err(Rav1dCodecErr::Rav1dCodecUnsupBitstream);
+    }
+
     if sh.reduced_still_picture_header {
         sh.timing_info_present_flag = false;
         sh.decoder_model_info_present_flag = false;
@@ -169,6 +181,9 @@ fn rav1d_parse_sequence_header_obu(r: &mut BitReader, oh: &ObuHeader) {
             if sh.timing_info.equal_picture_interval {
                 sh.timing_info.num_ticks_per_picture_minus_1 =
                     r.uvlc("num_ticks_per_picture_minus_1");
+                if sh.timing_info.num_ticks_per_picture_minus_1 == 0xFFFFFFFF {
+                    return Err(Rav1dCodecErr::Rav1dCodecCorruptFrame);
+                }
             }
 
             sh.decoder_model_info_present_flag = r.f(1, "decoder_model_info_present_flag") != 0;
@@ -224,8 +239,11 @@ fn rav1d_parse_sequence_header_obu(r: &mut BitReader, oh: &ObuHeader) {
             }
         }
     }
-    let operating_point: usize = 0; // TODO: choose_operating_optin();
-    let operating_point_id = sh.operating_points[operating_point].operating_point_idc;
+    if d.operating_point < (sh.operating_points_cnt_minus_1 + 1) as usize {
+        d.operating_point_idc = sh.operating_points[d.operating_point].operating_point_idc;
+    } else {
+        d.operating_point_idc = sh.operating_points[0].operating_point_idc;
+    }
 
     sh.frame_width_bits_minus_1 = r.f(4, "frame_width_bits_minus_1") as u8;
     sh.frame_height_bits_minus_1 = r.f(4, "frame_height_bits_minus_1") as u8;
@@ -246,6 +264,7 @@ fn rav1d_parse_sequence_header_obu(r: &mut BitReader, oh: &ObuHeader) {
     if sh.frame_id_numbers_present_flag {
         sh.delta_frame_id_length_minus_2 = r.f(4, "delta_frame_id_length_minus_2") as u8;
         sh.additional_frame_id_length_minus_1 = r.f(3, "additional_frame_id_length_minus_1") as u8;
+        sh.frame_id_length = sh.additional_frame_id_length_minus_1 + 1 + sh.delta_frame_id_length_minus_2 + 2;
     }
 
     sh.use_128x128_superblock = r.f(1, "use_128x128_superblock") != 0;
@@ -370,16 +389,38 @@ fn rav1d_parse_sequence_header_obu(r: &mut BitReader, oh: &ObuHeader) {
     }
 
     sh.film_grain_params_present = r.f(1, "film_grain_params_present") != 0;
+
+    Ok(())
 }
 
-fn rav1d_parse_temporal_delimiter_obu() {}
+fn rav1d_parse_temporal_delimiter_obu() -> Result<(), Rav1dCodecErr> {
+    Ok(())
+}
 
-fn rav1d_parse_frame_header_obu() {}
+fn rav1d_parse_frame_header_obu() -> Result<(), Rav1dCodecErr> {
+    Ok(())
+}
 
-fn rav1d_parse_tile_group_obu() {}
+fn rav1d_parse_tile_group_obu() -> Result<(), Rav1dCodecErr> {
+    Ok(())
+}
 
-fn rav1d_parse_metadata_obu() {}
-fn rav1d_parse_frame_obu() {}
-fn rav1d_parse_redundant_frame_header_obu() {}
-fn rav1d_parse_tile_list_obu() {}
-fn rav1d_parse_padding_obu() {}
+fn rav1d_parse_metadata_obu() -> Result<(), Rav1dCodecErr> {
+    Ok(())
+}
+
+fn rav1d_parse_frame_obu() -> Result<(), Rav1dCodecErr> {
+    Ok(())
+}
+
+fn rav1d_parse_redundant_frame_header_obu() -> Result<(), Rav1dCodecErr> {
+    Ok(())
+}
+
+fn rav1d_parse_tile_list_obu() -> Result<(), Rav1dCodecErr> {
+    Ok(())
+}
+
+fn rav1d_parse_padding_obu() -> Result<(), Rav1dCodecErr> {
+    Ok(())
+}
