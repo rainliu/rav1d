@@ -16,7 +16,7 @@ pub enum ObuType {
 }
 
 impl ObuType {
-    pub fn from(obu_type: i32) -> Option<Self> {
+    pub fn from(obu_type: u32) -> Option<Self> {
         match obu_type {
             1 => Some(ObuType::ObuSequenceHeader),
             2 => Some(ObuType::ObuTemporalDelimiter),
@@ -50,23 +50,23 @@ pub struct ObuHeader {
 }
 
 // Parses OBU header and stores values in 'header'
-pub fn rav1d_parse_obu_header(br: &mut BitReader) -> Result<ObuHeader, aom_codec_err_t> {
-    if br.read_bit()? != 0 {
+pub fn rav1d_parse_obu_header(r: &mut BitReader) -> Result<ObuHeader, aom_codec_err_t> {
+    if r.f(1, "obu_forbidden_bit") != 0 {
         // forbidden_bit must be set to 0.
         return Err(aom_codec_err_t::AOM_CODEC_CORRUPT_FRAME);
     }
 
     let obu_type: ObuType;
-    if let Some(t) = ObuType::from(br.read_literal(4)?) {
+    if let Some(t) = ObuType::from(r.f(4, "obu_type")) {
         obu_type = t;
     } else {
         return Err(aom_codec_err_t::AOM_CODEC_CORRUPT_FRAME);
     }
 
-    let extension_flag = br.read_bit()? != 0;
-    let has_size_field = br.read_bit()? != 0;
+    let extension_flag = r.f(1, "obu_extension_flag") != 0;
+    let has_size_field = r.f(1, "obu_has_size_field") != 0;
 
-    if br.read_bit()? != 0 {
+    if r.f(1, "obu_reserved_1bit") != 0 {
         // obu_reserved_1bit must be set to 0.
         return Err(aom_codec_err_t::AOM_CODEC_CORRUPT_FRAME);
     }
@@ -74,9 +74,9 @@ pub fn rav1d_parse_obu_header(br: &mut BitReader) -> Result<ObuHeader, aom_codec
     let temporal_id: u8;
     let spatial_id: u8;
     if extension_flag {
-        temporal_id = br.read_literal(3)? as u8;
-        spatial_id = br.read_literal(2)? as u8;
-        if br.read_literal(3)? != 0 {
+        temporal_id = r.f(3, "temporal_id") as u8;
+        spatial_id = r.f(2, "spatial_id") as u8;
+        if r.f(3, "extension_header_reserved_3bits") != 0 {
             // extension_header_reserved_3bits must be set to 0.
             return Err(aom_codec_err_t::AOM_CODEC_CORRUPT_FRAME);
         }
@@ -94,31 +94,18 @@ pub fn rav1d_parse_obu_header(br: &mut BitReader) -> Result<ObuHeader, aom_codec
     });
 }
 
-// Parses OBU size
-pub fn rav1d_parse_obu_size(br: &mut BitReader) -> Result<usize, aom_codec_err_t> {
-    let mut value: u64 = 0;
-    for i in 0..8 {
-        let mut leb128_byte = br.read_unsigned_literal(8)?;
-        value |= ((leb128_byte & 0x7f) as u64) << (i * 7);
-        leb128_byte += 1;
-        if (leb128_byte & 0x80) == 0 {
-            break;
-        }
-    }
-    Ok(value as usize)
-}
+pub fn rav1d_parse_obu(dec: &Rav1Decoder, data: &[u8]) -> Result<usize, aom_codec_err_t> {
+    let mut r = BitReader::new(data);
 
-pub fn rav1d_parse_obu(dec: &Rav1Decoder, data: &[u8]) -> Result<(), aom_codec_err_t> {
-    let mut br = BitReader::new(data, 0);
-
-    let obu_header = rav1d_parse_obu_header(&mut br)?;
+    let obu_header = rav1d_parse_obu_header(&mut r)?;
     let obu_size = if obu_header.has_size_field {
-        rav1d_parse_obu_size(&mut br)?
+        r.leb128("obu_size") as usize
     } else {
         data.len() - 1 - (obu_header.extension_flag as usize)
     };
 
-    let start_position = br.bits_read();
+    let start_position = r.get_position();
+    let start_byte_position = start_position >> 3;
     assert_eq!((start_position & 7), 0);
 
     let operating_point_idc = 0;
@@ -130,23 +117,32 @@ pub fn rav1d_parse_obu(dec: &Rav1Decoder, data: &[u8]) -> Result<(), aom_codec_e
         let in_temporal_layer = (dec.operating_point_idc >> obu_header.temporal_id) & 1;
         let in_spatial_layer = (dec.operating_point_idc >> (obu_header.spatial_id + 8)) & 1;
         if in_temporal_layer == 0 || in_spatial_layer == 0 {
-            return Ok(());
+            return Ok(obu_size + start_byte_position);
         }
     }
 
     match obu_header.obu_type {
-        ObuSequenceHeader => rav1d_parse_sequence_header_obu(),
-        ObuTemporalDelimiter => rav1d_parse_temporal_delimiter_obu(),
-        ObuFrameHeader => rav1d_parse_frame_header_obu(),
-        ObuTileGroup => rav1d_parse_tile_group_obu(),
-        ObuMetadata => rav1d_parse_metadata_obu(),
-        ObuFrame => rav1d_parse_frame_obu(),
-        ObuRedundantFrameHeader => rav1d_parse_redundant_frame_header_obu(),
-        ObuTileList => rav1d_parse_tile_list_obu(),
-        ObuPadding => rav1d_parse_padding_obu(),
+        ObuType::ObuSequenceHeader => rav1d_parse_sequence_header_obu(),
+        ObuType::ObuTemporalDelimiter => rav1d_parse_temporal_delimiter_obu(),
+        ObuType::ObuFrameHeader => rav1d_parse_frame_header_obu(),
+        ObuType::ObuTileGroup => rav1d_parse_tile_group_obu(),
+        ObuType::ObuMetadata => rav1d_parse_metadata_obu(),
+        ObuType::ObuFrame => rav1d_parse_frame_obu(),
+        ObuType::ObuRedundantFrameHeader => rav1d_parse_redundant_frame_header_obu(),
+        ObuType::ObuTileList => rav1d_parse_tile_list_obu(),
+        ObuType::ObuPadding => rav1d_parse_padding_obu(),
     };
 
-    return Ok(());
+    let current_position = r.get_position();
+    let payload_bits = current_position - start_position;
+    if obu_size > 0
+        && obu_header.obu_type != ObuType::ObuTileGroup
+        && obu_header.obu_type != ObuType::ObuFrame
+    {
+        r.trailing_bits(obu_size * 8 - payload_bits);
+    }
+
+    return Ok(obu_size + start_byte_position);
 }
 
 fn rav1d_parse_sequence_header_obu() {}
