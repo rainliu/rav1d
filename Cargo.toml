@@ -3,5 +3,15 @@ name = "rav1d"
 version = "0.1.0"
 authors = ["Rain Liu <yuliu@outlook.com>"]
 edition = "2018"
+description = "Rust AV1 Decoder (rav1d)"
+license = "MIT"
+documentation = "https://github.com/rainliu/rav1d"
+homepage = "https://github.com/rainliu/rav1d"
+repository = "https://github.com/rainliu/rav1d"
+
+include = [
+    "**/*.rs",
+    "Cargo.toml",
+]
 
 [dependencies]
