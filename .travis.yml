@@ -42,7 +42,7 @@ jobs:
         script:
          - cargo install cargo-kcov
          - kcov --version
-         - RUSTFLAGS="-C link-dead-code" cargo build --features=decode_test,quick_test --tests --verbose
+         - RUSTFLAGS="-C link-dead-code" cargo build --verbose
          - travis_wait cargo kcov -v --coveralls --no-clean-rebuild -- --verify
       - name: "Doc & Clippy (linter): verifying code quality"
         script:
