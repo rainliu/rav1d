@@ -141,34 +141,51 @@ struct Rav1dContentLightLevel {
 }
 
 struct Rav1dMasteringDisplay {
-    ///< 0.16 fixed point
+    // 0.16 fixed point
     primaries: [[u16; 3]; 2], //TODO: confirm [3][2]?
-    ///< 0.16 fixed point
+    // 0.16 fixed point
     white_point: [u16; 2],
-    ///< 24.8 fixed point
+    // 24.8 fixed point
     max_luminance: u32,
-    ///< 18.14 fixed point
+    // 18.14 fixed point
     min_luminance: u32,
 }
-/*
-typedef struct Rav1dSequenceHeader {
+
+struct Rav1dSequenceHeaderOperatingPoint {
+    major_level: isize,
+    minor_level: isize,
+    initial_display_delay: isize,
+    idc: isize,
+    tier: isize,
+    decoder_model_param_present: isize,
+    display_model_param_present: isize,
+}
+
+struct Rav1dSequenceHeaderOperatingParameterInfo {
+    decoder_buffer_delay: isize,
+    encoder_buffer_delay: isize,
+    low_delay_mode: isize,
+}
+
+struct Rav1dSequenceHeader {
     /**
      * Stream profile, 0 for 8-10 bits/component 4:2:0 or monochrome;
      * 1 for 8-10 bits/component 4:4:4; 2 for 4:2:2 at any bits/component,
      * or 12 bits/component at any chroma subsampling.
      */
-    int profile;
+    profile: isize,
     /**
      * Maximum dimensions for this stream. In non-scalable streams, these
      * are often the actual dimensions of the stream, although that is not
      * a normative requirement.
      */
-    int max_width, max_height;
-    enum Rav1dPixelLayout layout; ///< format of the picture
-    enum Rav1dColorPrimaries pri; ///< color primaries (av1)
-    enum Rav1dTransferCharacteristics trc; ///< transfer characteristics (av1)
-    enum Rav1dMatrixCoefficients mtrx; ///< matrix coefficients (av1)
-    enum Rav1dChromaSamplePosition chr; ///< chroma sample position (av1)
+    max_width: isize,
+    max_height: isize,
+    layout: Rav1dPixelLayout,          // format of the picture
+    pri: Rav1dColorPrimaries,          // color primaries (av1)
+    trc: Rav1dTransferCharacteristics, // transfer characteristics (av1)
+    mtrx: Rav1dMatrixCoefficients,     // matrix coefficients (av1)
+    chr: Rav1dChromaSamplePosition,    // chroma sample position (av1)
     /**
      * 0, 1 and 2 mean 8, 10 or 12 bits/component, respectively. This is not
      * exactly the same as 'hbd' from the spec; the spec's hbd distinguishes
@@ -176,60 +193,56 @@ typedef struct Rav1dSequenceHeader {
      * (twelve_bit) to distinguish between 10 and 12 bits/component. To get
      * the spec's hbd, use !!our_hbd, and to get twelve_bit, use hbd == 2.
      */
-    int hbd;
+    hbd: isize,
     /**
      * Pixel data uses JPEG pixel range ([0,255] for 8bits) instead of
      * MPEG pixel range ([16,235] for 8bits luma, [16,240] for 8bits chroma).
      */
-    int color_range;
+    color_range: isize,
 
-    int num_operating_points;
-    struct Rav1dSequenceHeaderOperatingPoint {
-        int major_level, minor_level;
-        int initial_display_delay;
-        int idc;
-        int tier;
-        int decoder_model_param_present;
-        int display_model_param_present;
-    } operating_points[RAV1D_MAX_OPERATING_POINTS];
+    num_operating_points: usize,
+    operating_points: [Rav1dSequenceHeaderOperatingPoint; RAV1D_MAX_OPERATING_POINTS],
 
-    int still_picture;
-    int reduced_still_picture_header;
-    int timing_info_present;
-    int num_units_in_tick;
-    int time_scale;
-    int equal_picture_interval;
-    unsigned num_ticks_per_picture;
-    int decoder_model_info_present;
-    int encoder_decoder_buffer_delay_length;
-    int num_units_in_decoding_tick;
-    int buffer_removal_delay_length;
-    int frame_presentation_delay_length;
-    int display_model_info_present;
-    int width_n_bits, height_n_bits;
-    int frame_id_numbers_present;
-    int delta_frame_id_n_bits;
-    int frame_id_n_bits;
-    int sb128;
-    int filter_intra;
-    int intra_edge_filter;
-    int inter_intra;
-    int masked_compound;
-    int warped_motion;
-    int dual_filter;
-    int order_hint;
-    int jnt_comp;
-    int ref_frame_mvs;
-    enum Rav1dAdaptiveBoolean screen_content_tools;
-    enum Rav1dAdaptiveBoolean force_integer_mv;
-    int order_hint_n_bits;
-    int super_res;
-    int cdef;
-    int restoration;
-    int ss_hor, ss_ver, monochrome;
-    int color_description_present;
-    int separate_uv_delta_q;
-    int film_grain_present;
+    still_picture: isize,
+    reduced_still_picture_header: isize,
+    timing_info_present: isize,
+    num_units_in_tick: isize,
+    time_scale: isize,
+    equal_picture_interval: isize,
+    num_ticks_per_picture: usize,
+    decoder_model_info_present: isize,
+    encoder_decoder_buffer_delay_length: isize,
+    num_units_in_decoding_tick: isize,
+    buffer_removal_delay_length: isize,
+    frame_presentation_delay_length: isize,
+    display_model_info_present: isize,
+    width_n_bits: isize,
+    height_n_bits: isize,
+    frame_id_numbers_present: isize,
+    delta_frame_id_n_bits: isize,
+    frame_id_n_bits: isize,
+    sb128: isize,
+    filter_intra: isize,
+    intra_edge_filter: isize,
+    inter_intra: isize,
+    masked_compound: isize,
+    warped_motion: isize,
+    dual_filter: isize,
+    order_hint: isize,
+    jnt_comp: isize,
+    ref_frame_mvs: isize,
+    screen_content_tools: Rav1dAdaptiveBoolean,
+    force_integer_mv: Rav1dAdaptiveBoolean,
+    order_hint_n_bits: isize,
+    super_res: isize,
+    cdef: isize,
+    restoration: isize,
+    ss_hor: isize,
+    ss_ver: isize,
+    monochrome: isize,
+    color_description_present: isize,
+    separate_uv_delta_q: isize,
+    film_grain_present: isize,
 
     // Rav1dSequenceHeaders of the same sequence are required to be
     // bit-identical until this offset. See 7.5 "Ordering of OBUs":
@@ -237,148 +250,192 @@ typedef struct Rav1dSequenceHeader {
     //   sequence_header_obu must be bit-identical each time the
     //   sequence header appears except for the contents of
     //   operating_parameters_info.
-    struct Rav1dSequenceHeaderOperatingParameterInfo {
-        int decoder_buffer_delay;
-        int encoder_buffer_delay;
-        int low_delay_mode;
-    } operating_parameter_info[RAV1D_MAX_OPERATING_POINTS];
-} Rav1dSequenceHeader;
+    operating_parameter_info:
+        [Rav1dSequenceHeaderOperatingParameterInfo; RAV1D_MAX_OPERATING_POINTS],
+}
 
-typedef struct Rav1dSegmentationData {
-    int delta_q;
-    int delta_lf_y_v, delta_lf_y_h, delta_lf_u, delta_lf_v;
-    int ref;
-    int skip;
-    int globalmv;
-} Rav1dSegmentationData;
+struct Rav1dSegmentationData {
+    delta_q: isize,
+    delta_lf_y_v: isize,
+    delta_lf_y_h: isize,
+    delta_lf_u: isize,
+    delta_lf_v: isize,
+    ref_frame: isize,
+    skip: isize,
+    globalmv: isize,
+}
 
-typedef struct Rav1dSegmentationDataSet {
-    Rav1dSegmentationData d[RAV1D_MAX_SEGMENTS];
-    int preskip;
-    int last_active_segid;
-} Rav1dSegmentationDataSet;
+struct Rav1dSegmentationDataSet {
+    d: [Rav1dSegmentationData; RAV1D_MAX_SEGMENTS],
+    preskip: isize,
+    last_active_segid: isize,
+}
 
-typedef struct Rav1dLoopfilterModeRefDeltas {
-    int mode_delta[2 /* is_zeromv */];
-    int ref_delta[RAV1D_TOTAL_REFS_PER_FRAME];
-} Rav1dLoopfilterModeRefDeltas;
+struct Rav1dLoopfilterModeRefDeltas {
+    mode_delta: [isize; 2],
+    ref_delta: [isize; RAV1D_TOTAL_REFS_PER_FRAME],
+}
 
-typedef struct Rav1dFilmGrainData {
-    uint16_t seed;
-    int num_y_points;
-    uint8_t y_points[14][2 /* value, scaling */];
-    int chroma_scaling_from_luma;
-    int num_uv_points[2];
-    uint8_t uv_points[2][10][2 /* value, scaling */];
-    int scaling_shift;
-    int ar_coeff_lag;
-    int8_t ar_coeffs_y[24];
-    int8_t ar_coeffs_uv[2][25];
-    int ar_coeff_shift;
-    int grain_scale_shift;
-    int uv_mult[2];
-    int uv_luma_mult[2];
-    int uv_offset[2];
-    int overlap_flag;
-    int clip_to_restricted_range;
-} Rav1dFilmGrainData;
+struct Rav1dFilmGrainData {
+    seed: u16,
+    num_y_points: isize,
+    y_points: [[u8; 14]; 2], //TODO: [14][2]
+    chroma_scaling_from_luma: isize,
+    num_uv_points: [isize; 2],
+    uv_points: [[[u8; 2]; 10]; 2], //TODO: [2][10][2]
+    scaling_shift: isize,
+    ar_coeff_lag: isize,
+    ar_coeffs_y: [i8; 24],
+    ar_coeffs_uv: [[i8; 2]; 25], //TODO: [2][25]
+    ar_coeff_shift: isize,
+    grain_scale_shift: isize,
+    uv_mult: [isize; 2],
+    uv_luma_mult: [isize; 2],
+    uv_offset: [isize; 2],
+    overlap_flag: isize,
+    clip_to_restricted_range: isize,
+}
 
-typedef struct Rav1dFrameHeader {
-    enum Rav1dFrameType frame_type; ///< type of the picture
-    int width[2 /* { coded_width, superresolution_upscaled_width } */], height;
-    int frame_offset; ///< frame number
-    struct {
-        int present, update;
-        Rav1dFilmGrainData data;
-    } film_grain; ///< film grain parameters
-    int temporal_id, spatial_id; ///< spatial and temporal id of the frame for SVC
+struct Rav1dFilmGrain {
+    present: isize,
+    update: isize,
+    data: Rav1dFilmGrainData,
+}
 
-    int show_existing_frame;
-    int existing_frame_idx;
-    int frame_id;
-    int frame_presentation_delay;
-    int show_frame;
-    int showable_frame;
-    int error_resilient_mode;
-    int disable_cdf_update;
-    int allow_screen_content_tools;
-    int force_integer_mv;
-    int frame_size_override;
-    int primary_ref_frame;
-    int buffer_removal_time_present;
-    struct Rav1dFrameHeaderOperatingPoint {
-        int buffer_removal_time;
-    } operating_points[RAV1D_MAX_OPERATING_POINTS];
-    int refresh_frame_flags;
-    int render_width, render_height;
-    struct {
-        int width_scale_denominator;
-        int enabled;
-    } super_res;
-    int have_render_size;
-    int allow_intrabc;
-    int frame_ref_short_signaling;
-    int refidx[RAV1D_REFS_PER_FRAME];
-    int hp;
-    enum Rav1dFilterMode subpel_filter_mode;
-    int switchable_motion_mode;
-    int use_ref_frame_mvs;
-    int refresh_context;
-    struct {
-        int uniform;
-        unsigned n_bytes;
-        int min_log2_cols, max_log2_cols, log2_cols, cols;
-        int min_log2_rows, max_log2_rows, log2_rows, rows;
-        uint16_t col_start_sb[RAV1D_MAX_TILE_COLS + 1];
-        uint16_t row_start_sb[RAV1D_MAX_TILE_ROWS + 1];
-        int update;
-    } tiling;
-    struct {
-        int yac;
-        int ydc_delta;
-        int udc_delta, uac_delta, vdc_delta, vac_delta;
-        int qm, qm_y, qm_u, qm_v;
-    } quant;
-    struct {
-        int enabled, update_map, temporal, update_data;
-        Rav1dSegmentationDataSet seg_data;
-        int lossless[RAV1D_MAX_SEGMENTS], qidx[RAV1D_MAX_SEGMENTS];
-    } segmentation;
-    struct {
-        struct {
-            int present;
-            int res_log2;
-        } q;
-        struct {
-            int present;
-            int res_log2;
-            int multi;
-        } lf;
-    } delta;
-    int all_lossless;
-    struct {
-        int level_y[2 /* dir */];
-        int level_u, level_v;
-        int mode_ref_delta_enabled;
-        int mode_ref_delta_update;
-        Rav1dLoopfilterModeRefDeltas mode_ref_deltas;
-        int sharpness;
-    } loopfilter;
-    struct {
-        int damping;
-        int n_bits;
-        int y_strength[RAV1D_MAX_CDEF_STRENGTHS];
-        int uv_strength[RAV1D_MAX_CDEF_STRENGTHS];
-    } cdef;
-    struct {
-        enum Rav1dRestorationType type[3 /* plane */];
-        int unit_size[2 /* y, uv */];
-    } restoration;
-    enum Rav1dTxfmMode txfm_mode;
-    int switchable_comp_refs;
-    int skip_mode_allowed, skip_mode_enabled, skip_mode_refs[2];
-    int warp_motion;
-    int reduced_txtp_set;
-    Rav1dWarpedMotionParams gmv[RAV1D_REFS_PER_FRAME];
-} Rav1dFrameHeader;
-*/
+struct Rav1dFrameHeaderOperatingPoint {
+    buffer_removal_time: isize,
+}
+
+struct Rav1dSuperResolution {
+    width_scale_denominator: isize,
+    enabled: isize,
+}
+
+struct Rav1dTiling {
+    uniform: isize,
+    n_bytes: usize,
+    min_log2_cols: isize,
+    max_log2_cols: isize,
+    log2_cols: isize,
+    cols: isize,
+    min_log2_rows: isize,
+    max_log2_rows: isize,
+    log2_rows: isize,
+    rows: isize,
+    col_start_sb: [u16; RAV1D_MAX_TILE_COLS + 1],
+    row_start_sb: [u16; RAV1D_MAX_TILE_ROWS + 1],
+    update: isize,
+}
+
+struct Rav1dQuant {
+    yac: isize,
+    ydc_delta: isize,
+    udc_delta: isize,
+    uac_delta: isize,
+    vdc_delta: isize,
+    vac_delta: isize,
+    qm: isize,
+    qm_y: isize,
+    qm_u: isize,
+    qm_v: isize,
+}
+
+struct Rav1dSegmentation {
+    enabled: isize,
+    update_map: isize,
+    temporal: isize,
+    update_data: isize,
+    seg_data: Rav1dSegmentationDataSet,
+    lossless: [isize; RAV1D_MAX_SEGMENTS],
+    qidx: [isize; RAV1D_MAX_SEGMENTS],
+}
+struct Rav1dQ {
+    present: isize,
+    res_log2: isize,
+}
+
+struct Rav1dLF {
+    present: isize,
+    res_log2: isize,
+    multi: isize,
+}
+
+struct Rav1dDelta {
+    q: Rav1dQ,
+    lf: Rav1dLF,
+}
+
+struct Rav1dLoopFilter {
+    level_y: [isize; 2],
+    level_u: isize,
+    level_v: isize,
+    mode_ref_delta_enabled: isize,
+    mode_ref_delta_update: isize,
+    mode_ref_deltas: Rav1dLoopfilterModeRefDeltas,
+    sharpness: isize,
+}
+
+struct Rav1dCDEF {
+    damping: isize,
+    n_bits: isize,
+    y_strength: [isize; RAV1D_MAX_CDEF_STRENGTHS],
+    uv_strength: [isize; RAV1D_MAX_CDEF_STRENGTHS],
+}
+
+struct Rav1dRestoration {
+    t: [Rav1dRestorationType; 3],
+    unit_size: [isize; 2],
+}
+
+struct Rav1dFrameHeader {
+    frame_type: Rav1dFrameType, // type of the picture
+    width: [isize; 2],
+    height: isize,
+    frame_offset: isize,        // frame number
+    film_grain: Rav1dFilmGrain, // film grain parameters
+    temporal_id: isize,
+    spatial_id: isize, // spatial and temporal id of the frame for SVC
+    show_existing_frame: isize,
+    existing_frame_idx: isize,
+    frame_id: isize,
+    frame_presentation_delay: isize,
+    show_frame: isize,
+    showable_frame: isize,
+    error_resilient_mode: isize,
+    disable_cdf_update: isize,
+    allow_screen_content_tools: isize,
+    force_integer_mv: isize,
+    frame_size_override: isize,
+    primary_ref_frame: isize,
+    buffer_removal_time_present: isize,
+    operating_points: [Rav1dFrameHeaderOperatingPoint; RAV1D_MAX_OPERATING_POINTS],
+    refresh_frame_flags: isize,
+    render_width: isize,
+    render_height: isize,
+    super_res: Rav1dSuperResolution,
+    have_render_size: isize,
+    allow_intrabc: isize,
+    frame_ref_short_signaling: isize,
+    refidx: [isize; RAV1D_REFS_PER_FRAME],
+    hp: isize,
+    subpel_filter_mode: Rav1dFilterMode,
+    switchable_motion_mode: isize,
+    use_ref_frame_mvs: isize,
+    refresh_context: isize,
+    tiling: Rav1dTiling,
+    quant: Rav1dQuant,
+    segmentation: Rav1dSegmentation,
+    delta: Rav1dDelta,
+    all_lossless: isize,
+    loopfilter: Rav1dLoopFilter,
+    cdef: Rav1dCDEF,
+    restoration: Rav1dRestoration,
+    txfm_mode: Rav1dTxfmMode,
+    switchable_comp_refs: isize,
+    skip_mode_allowed: isize,
+    skip_mode_enabled: isize,
+    skip_mode_refs: [isize; 2],
+    warp_motion: isize,
+    reduced_txtp_set: isize,
+    gmv: [Rav1dWarpedMotionParams; RAV1D_REFS_PER_FRAME],
+}
