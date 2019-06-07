@@ -1,22 +1,22 @@
 // Constants from Section 3. "Symbols and abbreviated terms"
-const RAV1D_MAX_CDEF_STRENGTHS: usize = 8;
-const RAV1D_MAX_OPERATING_POINTS: usize = 32;
-const RAV1D_MAX_TILE_COLS: usize = 64;
-const RAV1D_MAX_TILE_ROWS: usize = 64;
-const RAV1D_MAX_SEGMENTS: usize = 8;
-const RAV1D_NUM_REF_FRAMES: usize = 8;
-const RAV1D_PRIMARY_REF_NONE: usize = 7;
-const RAV1D_REFS_PER_FRAME: usize = 7;
-const RAV1D_TOTAL_REFS_PER_FRAME: usize = (RAV1D_REFS_PER_FRAME + 1);
+pub const RAV1D_MAX_CDEF_STRENGTHS: usize = 8;
+pub const RAV1D_MAX_OPERATING_POINTS: usize = 32;
+pub const RAV1D_MAX_TILE_COLS: usize = 64;
+pub const RAV1D_MAX_TILE_ROWS: usize = 64;
+pub const RAV1D_MAX_SEGMENTS: usize = 8;
+pub const RAV1D_NUM_REF_FRAMES: usize = 8;
+pub const RAV1D_PRIMARY_REF_NONE: usize = 7;
+pub const RAV1D_REFS_PER_FRAME: usize = 7;
+pub const RAV1D_TOTAL_REFS_PER_FRAME: usize = (RAV1D_REFS_PER_FRAME + 1);
 
-enum Rav1dTxfmMode {
+pub enum Rav1dTxfmMode {
     RAV1D_TX_4X4_ONLY,
     RAV1D_TX_LARGEST,
     RAV1D_TX_SWITCHABLE,
     RAV1D_N_TX_MODES,
 }
 
-enum Rav1dFilterMode {
+pub enum Rav1dFilterMode {
     RAV1D_FILTER_8TAP_REGULAR,
     RAV1D_FILTER_8TAP_SMOOTH,
     RAV1D_FILTER_8TAP_SHARP,
@@ -26,57 +26,58 @@ enum Rav1dFilterMode {
     //RAV1D_FILTER_SWITCHABLE = RAV1D_N_FILTERS,
 }
 
-enum Rav1dAdaptiveBoolean {
+pub enum Rav1dAdaptiveBoolean {
     RAV1D_OFF = 0,
     RAV1D_ON = 1,
     RAV1D_ADAPTIVE = 2,
 }
 
-enum Rav1dRestorationType {
+pub enum Rav1dRestorationType {
     RAV1D_RESTORATION_NONE,
     RAV1D_RESTORATION_SWITCHABLE,
     RAV1D_RESTORATION_WIENER,
     RAV1D_RESTORATION_SGRPROJ,
 }
 
-enum Rav1dWarpedMotionType {
+pub enum Rav1dWarpedMotionType {
     RAV1D_WM_TYPE_IDENTITY,
     RAV1D_WM_TYPE_TRANSLATION,
     RAV1D_WM_TYPE_ROT_ZOOM,
     RAV1D_WM_TYPE_AFFINE,
 }
 
-struct Rav1dWarpedMotionParamsStruct {
+pub struct Rav1dWarpedMotionParamsStruct {
     alpha: i16,
     beta: i16,
     gamma: i16,
     delta: i16,
 }
-enum Rav1dWarpedMotionParamsUnion {
+pub enum Rav1dWarpedMotionParamsUnion {
     Abgd(Rav1dWarpedMotionParamsStruct),
     Abcd([i16; 4]),
 }
-struct Rav1dWarpedMotionParams {
+
+pub struct Rav1dWarpedMotionParams {
     t: Rav1dWarpedMotionType,
     matrix: [i32; 6],
     u: Rav1dWarpedMotionParamsUnion,
 }
 
-enum Rav1dPixelLayout {
+pub enum Rav1dPixelLayout {
     RAV1D_PIXEL_LAYOUT_I400, // monochrome
     RAV1D_PIXEL_LAYOUT_I420, // 4:2:0 planar
     RAV1D_PIXEL_LAYOUT_I422, // 4:2:2 planar
     RAV1D_PIXEL_LAYOUT_I444, // 4:4:4 planar
 }
 
-enum Rav1dFrameType {
+pub enum Rav1dFrameType {
     RAV1D_FRAME_TYPE_KEY = 0,    // Key Intra frame
     RAV1D_FRAME_TYPE_INTER = 1,  // Inter frame
     RAV1D_FRAME_TYPE_INTRA = 2,  // Non key Intra frame
     RAV1D_FRAME_TYPE_SWITCH = 3, // Switch Inter frame
 }
 
-enum Rav1dColorPrimaries {
+pub enum Rav1dColorPrimaries {
     RAV1D_COLOR_PRI_BT709 = 1,
     RAV1D_COLOR_PRI_UNKNOWN = 2,
     RAV1D_COLOR_PRI_BT470M = 4,
@@ -91,7 +92,7 @@ enum Rav1dColorPrimaries {
     RAV1D_COLOR_PRI_EBU3213 = 22,
 }
 
-enum Rav1dTransferCharacteristics {
+pub enum Rav1dTransferCharacteristics {
     RAV1D_TRC_BT709 = 1,
     RAV1D_TRC_UNKNOWN = 2,
     RAV1D_TRC_BT470M = 4,
@@ -111,7 +112,7 @@ enum Rav1dTransferCharacteristics {
     RAV1D_TRC_HLG = 18, // hybrid log/gamma (BT.2100 / ARIB STD-B67)
 }
 
-enum Rav1dMatrixCoefficients {
+pub enum Rav1dMatrixCoefficients {
     RAV1D_MC_IDENTITY = 0,
     RAV1D_MC_BT709 = 1,
     RAV1D_MC_UNKNOWN = 2,
@@ -128,19 +129,19 @@ enum Rav1dMatrixCoefficients {
     RAV1D_MC_ICTCP = 14,
 }
 
-enum Rav1dChromaSamplePosition {
+pub enum Rav1dChromaSamplePosition {
     RAV1D_CHR_UNKNOWN = 0,
     RAV1D_CHR_VERTICAL = 1, // Horizontally co-located with luma(0, 0)
     // sample, between two vertical samples
     RAV1D_CHR_COLOCATED = 2, // Co-located with luma(0, 0) sample
 }
 
-struct Rav1dContentLightLevel {
+pub struct Rav1dContentLightLevel {
     max_content_light_level: isize,
     max_frame_average_light_level: isize,
 }
 
-struct Rav1dMasteringDisplay {
+pub struct Rav1dMasteringDisplay {
     // 0.16 fixed point
     primaries: [[u16; 3]; 2], //TODO: confirm [3][2]?
     // 0.16 fixed point
@@ -151,7 +152,7 @@ struct Rav1dMasteringDisplay {
     min_luminance: u32,
 }
 
-struct Rav1dSequenceHeaderOperatingPoint {
+pub struct Rav1dSequenceHeaderOperatingPoint {
     major_level: isize,
     minor_level: isize,
     initial_display_delay: isize,
@@ -161,13 +162,13 @@ struct Rav1dSequenceHeaderOperatingPoint {
     display_model_param_present: isize,
 }
 
-struct Rav1dSequenceHeaderOperatingParameterInfo {
+pub struct Rav1dSequenceHeaderOperatingParameterInfo {
     decoder_buffer_delay: isize,
     encoder_buffer_delay: isize,
     low_delay_mode: isize,
 }
 
-struct Rav1dSequenceHeader {
+pub struct Rav1dSequenceHeader {
     /**
      * Stream profile, 0 for 8-10 bits/component 4:2:0 or monochrome;
      * 1 for 8-10 bits/component 4:4:4; 2 for 4:2:2 at any bits/component,
@@ -254,7 +255,7 @@ struct Rav1dSequenceHeader {
         [Rav1dSequenceHeaderOperatingParameterInfo; RAV1D_MAX_OPERATING_POINTS],
 }
 
-struct Rav1dSegmentationData {
+pub struct Rav1dSegmentationData {
     delta_q: isize,
     delta_lf_y_v: isize,
     delta_lf_y_h: isize,
@@ -265,18 +266,18 @@ struct Rav1dSegmentationData {
     globalmv: isize,
 }
 
-struct Rav1dSegmentationDataSet {
+pub struct Rav1dSegmentationDataSet {
     d: [Rav1dSegmentationData; RAV1D_MAX_SEGMENTS],
     preskip: isize,
     last_active_segid: isize,
 }
 
-struct Rav1dLoopfilterModeRefDeltas {
+pub struct Rav1dLoopfilterModeRefDeltas {
     mode_delta: [isize; 2],
     ref_delta: [isize; RAV1D_TOTAL_REFS_PER_FRAME],
 }
 
-struct Rav1dFilmGrainData {
+pub struct Rav1dFilmGrainData {
     seed: u16,
     num_y_points: isize,
     y_points: [[u8; 14]; 2], //TODO: [14][2]
@@ -296,22 +297,22 @@ struct Rav1dFilmGrainData {
     clip_to_restricted_range: isize,
 }
 
-struct Rav1dFilmGrain {
+pub struct Rav1dFilmGrain {
     present: isize,
     update: isize,
     data: Rav1dFilmGrainData,
 }
 
-struct Rav1dFrameHeaderOperatingPoint {
+pub struct Rav1dFrameHeaderOperatingPoint {
     buffer_removal_time: isize,
 }
 
-struct Rav1dSuperResolution {
+pub struct Rav1dSuperResolution {
     width_scale_denominator: isize,
     enabled: isize,
 }
 
-struct Rav1dTiling {
+pub struct Rav1dTiling {
     uniform: isize,
     n_bytes: usize,
     min_log2_cols: isize,
@@ -327,7 +328,7 @@ struct Rav1dTiling {
     update: isize,
 }
 
-struct Rav1dQuant {
+pub struct Rav1dQuant {
     yac: isize,
     ydc_delta: isize,
     udc_delta: isize,
@@ -340,7 +341,7 @@ struct Rav1dQuant {
     qm_v: isize,
 }
 
-struct Rav1dSegmentation {
+pub struct Rav1dSegmentation {
     enabled: isize,
     update_map: isize,
     temporal: isize,
@@ -349,23 +350,24 @@ struct Rav1dSegmentation {
     lossless: [isize; RAV1D_MAX_SEGMENTS],
     qidx: [isize; RAV1D_MAX_SEGMENTS],
 }
-struct Rav1dQ {
+
+pub struct Rav1dQ {
     present: isize,
     res_log2: isize,
 }
 
-struct Rav1dLF {
+pub struct Rav1dLF {
     present: isize,
     res_log2: isize,
     multi: isize,
 }
 
-struct Rav1dDelta {
+pub struct Rav1dDelta {
     q: Rav1dQ,
     lf: Rav1dLF,
 }
 
-struct Rav1dLoopFilter {
+pub struct Rav1dLoopFilter {
     level_y: [isize; 2],
     level_u: isize,
     level_v: isize,
@@ -375,19 +377,19 @@ struct Rav1dLoopFilter {
     sharpness: isize,
 }
 
-struct Rav1dCDEF {
+pub struct Rav1dCDEF {
     damping: isize,
     n_bits: isize,
     y_strength: [isize; RAV1D_MAX_CDEF_STRENGTHS],
     uv_strength: [isize; RAV1D_MAX_CDEF_STRENGTHS],
 }
 
-struct Rav1dRestoration {
+pub struct Rav1dRestoration {
     t: [Rav1dRestorationType; 3],
     unit_size: [isize; 2],
 }
 
-struct Rav1dFrameHeader {
+pub struct Rav1dFrameHeader {
     frame_type: Rav1dFrameType, // type of the picture
     width: [isize; 2],
     height: isize,
