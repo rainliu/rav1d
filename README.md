@@ -1,8 +1,4 @@
 # rav1d
 Rust AV1 Decoder
+[![Travis Build Status](https://travis-ci.org/rainliu/rav1d.svg?branch=master)](https://travis-ci.org/rainliu/rav1d)
 
-1.IVF Demuxer
-
-2.OBU Parser
-
-3.
