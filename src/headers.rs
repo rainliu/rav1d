@@ -1,5 +1,3 @@
-#![allow(non_snake_case)]
-
 // Constants from Section 3. "Symbols and abbreviated terms"
 pub const RAV1D_MAX_CDEF_STRENGTHS: usize = 8;
 pub const RAV1D_MAX_OPERATING_POINTS: usize = 32;
