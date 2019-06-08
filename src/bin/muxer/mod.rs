@@ -8,10 +8,7 @@ use self::y4m::Y4mMuxer;
 use crate::common::*;
 
 pub trait Muxer {
-    fn open(
-        &mut self,
-        p: &VideoDetails,
-    ) -> io::Result<()>;
+    fn open(&mut self, p: &VideoDetails) -> io::Result<()>;
 
     fn write(&mut self, p: &Rav1dPicture);
 

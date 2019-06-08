@@ -2,17 +2,13 @@ mod common;
 mod demuxer;
 mod muxer;
 
-
 use clap::{App, AppSettings, Arg};
-
-use std::fs::File;
-use std::io::prelude::*;
 
 pub struct CLISettings {
     //pub input: Box<dyn Read>,
-    pub output: Box<dyn Write>,
+    //pub output: Box<dyn Write>,
     pub demuxer: Box<dyn demuxer::Demuxer>,
-    //pub muxer: Box<dyn Muxer>,
+    pub muxer: Box<dyn muxer::Muxer>,
     //const char *frametimes;
     //const char *verify;
     pub limit: usize,
@@ -94,10 +90,7 @@ pub fn parse_cli() -> CLISettings {
 
     CLISettings {
         demuxer: demuxer::new(matches.value_of("INPUT").unwrap()),
-        output: matches
-            .value_of("OUTPUT")
-            .map(|f| Box::new(File::create(&f).unwrap()) as Box<dyn Write>)
-            .unwrap(),
+        muxer: muxer::new(matches.value_of("OUTPUT").unwrap()),
         limit: matches.value_of("LIMIT").unwrap().parse().unwrap(),
         skip: matches.value_of("SKIP").unwrap().parse().unwrap(),
         verbose: matches.is_present("VERBOSE"),

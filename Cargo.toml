@@ -17,7 +17,7 @@ default = ["binaries"]
 [dependencies]
 bitstream-io = "0.8"
 clap = { version = "2", optional = true, default-features = false }
-y4m = { version = "0.3.2", optional = true }
+y4m = { path = "y4m/", optional = true }
 ivf = { path = "ivf/", optional = true }
 
 [[bin]]
@@ -25,4 +25,4 @@ name = "rav1d"
 required-features = ["binaries"]
 
 [workspace]
-members = ["ivf"]
+members = ["ivf", "y4m"]
