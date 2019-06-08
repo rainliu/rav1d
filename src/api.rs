@@ -52,6 +52,7 @@ const RAV1D_MAX_TILE_THREADS: usize = 64;
     callback: )(void *cookie, const char *format, va_list ap);
 }*/
 
+#[derive(Debug, Clone, Copy)]
 pub struct Rav1dSettings {
     n_frame_threads: isize,
     n_tile_threads: isize,
@@ -59,23 +60,38 @@ pub struct Rav1dSettings {
     operating_point: isize, // select an operating point for scalable AV1 bitstreams (0 - 31)
     all_layers: isize,      // output all spatial layers of a scalable AV1 biststream
     frame_size_limit: usize, // maximum frame size, in pixels (0 = unlimited)
-    reserved: [u8; 32],     // reserved for future use
+                            //reserved: [u8; 32],     // reserved for future use
                             //Rav1dPicAllocator allocator;
                             //Rav1dLogger logger;
 }
 
-pub struct Rav1dContext {
-
+impl Default for Rav1dSettings {
+    fn default() -> Self {
+        Rav1dSettings {
+            n_frame_threads: 1,
+            n_tile_threads: 1,
+            apply_grain: 0,
+            operating_point: 0,
+            all_layers: 1, // just until the tests are adjusted
+            frame_size_limit: 0,
+        }
+    }
 }
+
+impl Rav1dSettings {
+    pub fn new() -> Rav1dSettings{
+        Rav1dSettings{..Default::default()}
+    }
+}
+
+pub struct Rav1dContext {}
 
 pub fn rav1d_version() -> String {
     String::from("")
 }
 
-pub fn rav1d_default_settings(s: &Rav1dSettings) {}
-
 pub fn rav1d_open(s: &Rav1dSettings) -> Result<Rav1dContext, isize> {
-    Err(-1)
+    Ok(Rav1dContext {})
 }
 
 pub fn rav1d_parse_sequence_header(out: &Rav1dSequenceHeader, buf: &[u8]) -> isize {
