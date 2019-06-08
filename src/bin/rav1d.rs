@@ -1,6 +1,9 @@
 mod demuxer;
 mod muxer;
+
 use rav1d::*;
+use crate::demuxer::*;
+use crate::muxer::*;
 
 use clap::{App, AppSettings, Arg};
 

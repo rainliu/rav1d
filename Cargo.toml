@@ -11,14 +11,18 @@ repository = "https://github.com/rainliu/rav1d"
 include = ["**/*.rs",  "Cargo.toml"]
 
 [features]
-binaries = ["y4m", "clap"]
+binaries = ["ivf", "y4m", "clap"]
 default = ["binaries"]
 
 [dependencies]
 bitstream-io = "0.8"
 clap = { version = "2", optional = true, default-features = false }
 y4m = { version = "0.3.2", optional = true }
+ivf = { path = "ivf/", optional = true }
 
 [[bin]]
 name = "rav1d"
 required-features = ["binaries"]
+
+[workspace]
+members = ["ivf"]
