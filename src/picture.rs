@@ -23,7 +23,7 @@ pub struct Rav1dPicture<'a, T> {
     stride: [usize; 2],
 
     p: Rav1dPictureParameters,
-    m: Rav1dDataProps<'a>,
+    m: Rav1dDataProps,
 
     content_light: &'a Rav1dContentLightLevel,
 
