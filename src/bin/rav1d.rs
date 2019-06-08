@@ -2,9 +2,9 @@ mod common;
 mod demuxer;
 mod muxer;
 
-use std::io;
 use clap::{App, AppSettings, Arg};
 use rav1d::api::*;
+use std::io;
 
 pub struct CLISettings {
     //pub input: Box<dyn Read>,
@@ -111,13 +111,27 @@ fn main() -> io::Result<()> {
         eprintln!("rav1d {}", rav1d_version());
         eprintln!("{:?}", video_info);
     }
-    let total =  if cli_settings.limit != 0 && cli_settings.limit < video_info.num_frames {
+    let total = if cli_settings.limit != 0 && cli_settings.limit < video_info.num_frames {
         cli_settings.limit
     } else {
         video_info.num_frames
     };
 
-    rav1d_open(&lib_settings).unwrap();
+    let mut data: Rav1dData;
+    for _i in 0..cli_settings.skip {
+        data = cli_settings.demuxer.read()?;
+        eprintln!("{:?}", data.m)
+    }
+
+    let mut ctx = rav1d_open(&lib_settings).unwrap();
+
+    while let Ok(data) = cli_settings.demuxer.read() {
+        eprintln!("{:?}", data.m)
+
+        //rav1d_send_data(&ctx, &data)
+    }
+
+    cli_settings.muxer.close();
 
     Ok(())
 }

@@ -26,7 +26,7 @@ impl ChromaSampling {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]  //, FromPrimitive
+#[derive(Copy, Clone, Debug, PartialEq)] //, FromPrimitive
 #[repr(C)]
 pub enum ChromaSamplePosition {
     Unknown,

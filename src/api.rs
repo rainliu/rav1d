@@ -1,11 +1,13 @@
 use crate::headers::*;
 use crate::picture::*;
 
+#[derive(Debug, Clone)]
 pub struct Rav1dUserData {
     pub data: Box<[u8]>,
     //ref: &Rav1dRef  //TODO
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Rav1dDataProps {
     pub timestamp: u64,
     pub duration: u64,
@@ -14,6 +16,7 @@ pub struct Rav1dDataProps {
     //pub user_data: Rav1dUserData,
 }
 
+#[derive(Debug, Clone)]
 pub struct Rav1dData {
     pub data: Box<[u8]>,
     //ref: &Rav1dRef  //TODO
@@ -98,11 +101,11 @@ pub fn rav1d_parse_sequence_header(out: &Rav1dSequenceHeader, buf: &[u8]) -> isi
     0
 }
 
-pub fn rav1d_send_data(c: &Rav1dContext, i: &Rav1dData) -> isize {
+pub fn rav1d_send_data(c: &Rav1dContext, input: &Rav1dData) -> isize {
     0
 }
 
-pub fn rav1d_get_picture(c: &Rav1dContext, out: &Rav1dPicture) -> isize {
+pub fn rav1d_get_picture(c: &Rav1dContext, output: &Rav1dPicture) -> isize {
     0
 }
 

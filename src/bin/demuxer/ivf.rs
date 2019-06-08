@@ -4,8 +4,8 @@ use std::fs::File;
 use std::io;
 use std::io::Read;
 
-use rav1d::api::*;
 use crate::common::*;
+use rav1d::api::*;
 
 pub struct IvfDemuxer {
     input: Box<dyn Read>,
@@ -45,13 +45,13 @@ impl Demuxer for IvfDemuxer {
         let pkt = read_packet(&mut self.input)?;
 
         Ok(Rav1dData {
-            data: pkt.data,
             m: Rav1dDataProps {
                 timestamp: pkt.pts,
                 duration: 0,
                 offset: 0,
-                size: 0,
+                size: pkt.data.len(),
             },
+            data: pkt.data,
         })
     }
 
