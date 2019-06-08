@@ -19,7 +19,7 @@ pub struct Rav1dPicture {
 
     pub data: [Box<[u8]>; 3],
 
-    pub stride: [usize; 2],
+    pub stride: [usize; 2], // luma/chroma
 
     pub p: Rav1dPictureParameters,
     pub m: Rav1dDataProps,

@@ -120,15 +120,20 @@ fn main() -> io::Result<()> {
     let mut data: Rav1dData;
     for _i in 0..cli_settings.skip {
         data = cli_settings.demuxer.read()?;
-        eprintln!("{:?}", data.m)
+        eprintln!("{:?}", data.m);
     }
 
     let mut ctx = rav1d_open(&lib_settings).unwrap();
 
     while let Ok(data) = cli_settings.demuxer.read() {
-        eprintln!("{:?}", data.m)
+        eprintln!("{:?}", data.m);
 
-        //rav1d_send_data(&ctx, &data)
+        let res = rav1d_send_data(&mut ctx, &data);
+        if res < 0 {
+            eprintln!("Error decoding frame: {}", res);
+        }
+
+        //let res = rav1d_get_picture(&ctx, )
     }
 
     cli_settings.muxer.close();

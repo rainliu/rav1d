@@ -101,14 +101,14 @@ pub fn rav1d_parse_sequence_header(out: &Rav1dSequenceHeader, buf: &[u8]) -> isi
     0
 }
 
-pub fn rav1d_send_data(c: &Rav1dContext, input: &Rav1dData) -> isize {
+pub fn rav1d_send_data(c: &mut Rav1dContext, input: &Rav1dData) -> isize {
     0
 }
 
-pub fn rav1d_get_picture(c: &Rav1dContext, output: &Rav1dPicture) -> isize {
-    0
+pub fn rav1d_get_picture(c: &mut Rav1dContext) -> Result<Rav1dPicture, isize> {
+    Err(-1)
 }
 
-pub fn rav1d_close(c_out: &mut Rav1dContext) {}
+pub fn rav1d_close(c: &mut Rav1dContext) {}
 
-pub fn rav1d_flush(c: &Rav1dContext) {}
+pub fn rav1d_flush(c: &mut Rav1dContext) {}

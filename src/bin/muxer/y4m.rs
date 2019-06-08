@@ -6,7 +6,7 @@ use std::io::{Error, ErrorKind};
 
 use crate::common::*;
 use rav1d::picture::*;
-use y4m::*;
+use y4m;
 
 pub struct Y4mMuxer {
     output: Box<dyn Write>,
@@ -32,10 +32,10 @@ impl Y4mMuxer {
 
 impl Muxer for Y4mMuxer {
     fn open(&mut self, p: &VideoDetails) -> io::Result<()> {
-        match EncoderBuilder::new(
+        match y4m::EncoderBuilder::new(
             p.width,
             p.height,
-            Ratio::new(p.time_base.num as usize, p.time_base.den as usize),
+            y4m::Ratio::new(p.time_base.num as usize, p.time_base.den as usize),
         )
         .write_header(&mut self.output)
         {
@@ -43,7 +43,7 @@ impl Muxer for Y4mMuxer {
             Err(_) => return Err(Error::new(ErrorKind::Other, "error in y4m write_header")),
         };
 
-        let (y_len, u_len, v_len) = get_plane_sizes(p.width, p.height, Colorspace::C420);
+        let (y_len, u_len, v_len) = y4m::get_plane_sizes(p.width, p.height, y4m::Colorspace::C420);
         self.y_len = y_len;
         self.u_len = u_len;
         self.v_len = v_len;
@@ -52,14 +52,14 @@ impl Muxer for Y4mMuxer {
     }
 
     fn write(&mut self, p: &Rav1dPicture) {
-        let mut y4m_enc = Encoder {
+        let mut y4m_enc = y4m::Encoder {
             writer: &mut self.output,
             y_len: self.y_len,
             u_len: self.u_len,
             v_len: self.v_len,
         };
 
-        let rec_frame = Frame::new([&p.data[0], &p.data[1], &p.data[2]], None);
+        let rec_frame = y4m::Frame::new([&p.data[0], &p.data[1], &p.data[2]], None);
         y4m_enc.write_frame(&rec_frame).unwrap();
     }
 
