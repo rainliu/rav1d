@@ -52,12 +52,15 @@ impl Muxer for Y4mMuxer {
     }
 
     fn write(&mut self, p: &Rav1dPicture) {
-        let mut enc = Encoder {
+        let mut y4m_enc = Encoder {
             writer: &mut self.output,
             y_len: self.y_len,
             u_len: self.u_len,
             v_len: self.v_len,
         };
+
+        let rec_frame = Frame::new([&p.data[0], &p.data[1], &p.data[2]], None);
+        y4m_enc.write_frame(&rec_frame).unwrap();
     }
 
     fn close(&mut self) {}

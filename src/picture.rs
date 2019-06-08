@@ -7,22 +7,22 @@ use crate::headers::*;
 pub const RAV1D_PICTURE_ALIGNMENT: usize = 32;
 
 pub struct Rav1dPictureParameters {
-    w: isize,                 // width (in pixels)
-    h: isize,                 // height (in pixels)
-    layout: Rav1dPixelLayout, // format of the picture
-    bpc: isize,               // bits per pixel component (8 or 10)
+    pub w: isize,                 // width (in pixels)
+    pub h: isize,                 // height (in pixels)
+    pub layout: Rav1dPixelLayout, // format of the picture
+    pub bpc: isize,               // bits per pixel component (8 or 10)
 }
 
 pub struct Rav1dPicture {
-    seq_hdr: Rav1dSequenceHeader,
-    frame_hdr: Rav1dFrameHeader,
+    pub seq_hdr: Rav1dSequenceHeader,
+    pub frame_hdr: Rav1dFrameHeader,
 
-    data: [Box<[u8]>; 3],
+    pub data: [Box<[u8]>; 3],
 
-    stride: [usize; 2],
+    pub stride: [usize; 2],
 
-    p: Rav1dPictureParameters,
-    m: Rav1dDataProps,
+    pub p: Rav1dPictureParameters,
+    pub m: Rav1dDataProps,
     /*
        content_light: &'a Rav1dContentLightLevel,
 
