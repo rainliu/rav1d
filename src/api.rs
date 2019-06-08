@@ -2,22 +2,22 @@ use crate::headers::*;
 use crate::picture::*;
 
 pub struct Rav1dUserData {
-    data: Box<[u8]>,
+    pub data: Box<[u8]>,
     //ref: &Rav1dRef  //TODO
 }
 
 pub struct Rav1dDataProps {
-    timestamp: i64,
-    duration: i64,
-    offset: i64,
-    size: isize,
-    user_data: Rav1dUserData,
+    pub timestamp: u64,
+    pub duration: u64,
+    pub offset: i64,
+    pub size: usize,
+    //pub user_data: Rav1dUserData,
 }
 
 pub struct Rav1dData {
-    data: Box<[u8]>,
+    pub data: Box<[u8]>,
     //ref: &Rav1dRef  //TODO
-    m: Rav1dDataProps,
+    pub m: Rav1dDataProps,
 }
 
 pub fn rav1d_data_create<'a>(data: &'a Rav1dData, sz: usize) -> Result<&'a [u8], isize> {
@@ -86,7 +86,7 @@ pub fn rav1d_send_data(c: &Rav1dContext, i: &Rav1dData) -> isize {
     0
 }
 
-pub fn rav1d_get_picture<T>(c: &Rav1dContext, out: &Rav1dPicture<T>) -> isize {
+pub fn rav1d_get_picture(c: &Rav1dContext, out: &Rav1dPicture) -> isize {
     0
 }
 

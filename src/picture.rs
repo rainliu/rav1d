@@ -13,11 +13,11 @@ pub struct Rav1dPictureParameters {
     bpc: isize,               // bits per pixel component (8 or 10)
 }
 
-pub struct Rav1dPicture<T> {
+pub struct Rav1dPicture {
     seq_hdr: Rav1dSequenceHeader,
     frame_hdr: Rav1dFrameHeader,
 
-    data: [Box<[T]>; 3],
+    data: [Box<[u8]>; 3],
 
     stride: [usize; 2],
 

@@ -1,20 +1,17 @@
+mod common;
 mod demuxer;
 mod muxer;
 
-use rav1d::*;
-use crate::demuxer::*;
-use crate::muxer::*;
 
 use clap::{App, AppSettings, Arg};
 
 use std::fs::File;
-use std::io;
 use std::io::prelude::*;
 
 pub struct CLISettings {
-    pub input: Box<dyn Read>,
+    //pub input: Box<dyn Read>,
     pub output: Box<dyn Write>,
-    //pub demuxer: Box<dyn Demuxer>,
+    pub demuxer: Box<dyn demuxer::Demuxer>,
     //pub muxer: Box<dyn Muxer>,
     //const char *frametimes;
     //const char *verify;
@@ -31,7 +28,7 @@ pub struct CLISettings {
     unsigned realtime_cache;*/
 }
 
-pub fn parse() -> CLISettings {
+pub fn parse_cli() -> CLISettings {
     let mut app = App::new("rav1d")
         .version(env!("CARGO_PKG_VERSION"))
         .about("Rust AV1 Decoder")
@@ -96,10 +93,7 @@ pub fn parse() -> CLISettings {
     }
 
     CLISettings {
-        input: match matches.value_of("INPUT").unwrap() {
-            "-" => Box::new(io::stdin()) as Box<dyn Read>,
-            f => Box::new(File::open(&f).unwrap()) as Box<dyn Read>,
-        },
+        demuxer: demuxer::new(matches.value_of("INPUT").unwrap()),
         output: matches
             .value_of("OUTPUT")
             .map(|f| Box::new(File::create(&f).unwrap()) as Box<dyn Write>)
@@ -115,5 +109,5 @@ pub fn parse() -> CLISettings {
 }
 
 fn main() {
-    let mut cli = parse();
+    let mut cli = parse_cli();
 }
