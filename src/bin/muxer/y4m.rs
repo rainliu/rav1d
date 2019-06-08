@@ -54,11 +54,10 @@ impl Muxer for Y4mMuxer {
     fn write(&mut self, p: &Rav1dPicture) {
         let mut enc = Encoder {
             writer: &mut self.output,
-            y_len:self.y_len,
-            u_len:self.u_len,
-            v_len:self.v_len,
+            y_len: self.y_len,
+            u_len: self.u_len,
+            v_len: self.v_len,
         };
-
     }
 
     fn close(&mut self) {}
