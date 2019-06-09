@@ -111,7 +111,7 @@ fn main() -> io::Result<()> {
         eprintln!("rav1d {}", rav1d_version());
         eprintln!("{:?}", video_info);
     }
-    let total = if cli_settings.limit != 0 && cli_settings.limit < video_info.num_frames {
+    let _total = if cli_settings.limit != 0 && cli_settings.limit < video_info.num_frames {
         cli_settings.limit
     } else {
         video_info.num_frames
