@@ -7,23 +7,12 @@ use rav1d::api::*;
 use std::io;
 
 pub struct CLISettings {
-    //pub input: Box<dyn Read>,
-    //pub output: Box<dyn Write>,
     pub demuxer: Box<dyn demuxer::Demuxer>,
     pub muxer: Box<dyn muxer::Muxer>,
-    //const char *frametimes;
-    //const char *verify;
     pub limit: usize,
     pub skip: usize,
     pub verbose: bool,
     pub threads: usize,
-    /*enum {
-        REALTIME_DISABLE = 0,
-        REALTIME_INPUT,
-        REALTIME_CUSTOM,
-    } realtime;
-    double realtime_fps;
-    unsigned realtime_cache;*/
 }
 
 pub fn parse_cli() -> CLISettings {
@@ -105,6 +94,7 @@ pub fn parse_cli() -> CLISettings {
 
 fn main() -> io::Result<()> {
     let mut cli_settings = parse_cli();
+    /*
     let lib_settings = Rav1dSettings::new();
     let video_info = cli_settings.demuxer.open()?;
     if !cli_settings.verbose {
@@ -143,6 +133,6 @@ fn main() -> io::Result<()> {
     }
 
     cli_settings.muxer.close();
-
+    */
     Ok(())
 }

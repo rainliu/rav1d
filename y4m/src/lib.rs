@@ -177,10 +177,15 @@ impl Colorspace {
 }
 
 /// get plane sizes
-pub fn get_plane_sizes(width: usize, height: usize, colorspace: Colorspace) -> (usize, usize, usize) {
+pub fn get_plane_sizes(
+    width: usize,
+    height: usize,
+    colorspace: Colorspace,
+) -> (usize, usize, usize) {
     let y_plane_size = width * height * colorspace.get_bytes_per_sample();
 
-    let c420_chroma_size = ((width + 1) / 2) * ((height + 1) / 2) * colorspace.get_bytes_per_sample();
+    let c420_chroma_size =
+        ((width + 1) / 2) * ((height + 1) / 2) * colorspace.get_bytes_per_sample();
     let c422_chroma_size = ((width + 1) / 2) * height * colorspace.get_bytes_per_sample();
 
     let c420_sizes = (y_plane_size, c420_chroma_size, c420_chroma_size);

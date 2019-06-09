@@ -1,16 +1,15 @@
-use rav1d::picture::*;
-
 use std::io;
 
 mod y4m;
 use self::y4m::Y4mMuxer;
 
 use crate::common::*;
+use rav1d::frame::Frame;
 
 pub trait Muxer {
-    fn open(&mut self, p: &VideoDetails) -> io::Result<()>;
+    fn open(&mut self, d: &VideoDetails) -> io::Result<()>;
 
-    fn write(&mut self, p: &Rav1dPicture);
+    fn write(&mut self, f: &Frame<u8>);
 
     fn close(&mut self);
 }

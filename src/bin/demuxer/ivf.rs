@@ -1,5 +1,6 @@
 use super::Demuxer;
-use ivf::*;
+use ivf;
+
 use std::fs::File;
 use std::io;
 use std::io::Read;
@@ -25,7 +26,7 @@ impl IvfDemuxer {
 
 impl Demuxer for IvfDemuxer {
     fn open(&mut self) -> io::Result<VideoDetails> {
-        let hdr = read_header(&mut self.input)?;
+        let hdr = ivf::read_header(&mut self.input)?;
 
         Ok(VideoDetails {
             width: hdr.w as usize,
@@ -37,21 +38,15 @@ impl Demuxer for IvfDemuxer {
                 num: hdr.timebase_num as u64,
                 den: hdr.timebase_den as u64,
             },
-            num_frames: hdr.num_frames as usize,
         })
     }
 
-    fn read(&mut self) -> io::Result<Rav1dData> {
-        let pkt = read_packet(&mut self.input)?;
+    fn read(&mut self) -> io::Result<Packet> {
+        let pkt = ivf::read_packet(&mut self.input)?;
 
-        Ok(Rav1dData {
-            m: Rav1dDataProps {
-                timestamp: pkt.pts,
-                duration: 0,
-                offset: 0,
-                size: pkt.data.len(),
-            },
-            data: pkt.data,
+        Ok(Packet {
+            data: pkt.data.to_vec(),
+            pts: pkt.pts,
         })
     }
 

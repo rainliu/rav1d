@@ -16,6 +16,9 @@ default = ["binaries"]
 
 [dependencies]
 bitstream-io = "0.8"
+num-traits = "0.2"
+num-derive = "0.2"
+# rayon = "1.0"
 clap = { version = "2", optional = true, default-features = false }
 y4m = { path = "y4m/", optional = true }
 ivf = { path = "ivf/", optional = true }
