@@ -125,6 +125,7 @@ fn main() -> io::Result<()> {
 
     let mut ctx = rav1d_open(&lib_settings).unwrap();
 
+    let mut n_out = 0;
     while let Ok(data) = cli_settings.demuxer.read() {
         eprintln!("{:?}", data.m);
 
@@ -134,6 +135,11 @@ fn main() -> io::Result<()> {
         }
 
         //let res = rav1d_get_picture(&ctx, )
+        n_out += 1;
+
+        if cli_settings.limit != 0 && n_out == cli_settings.limit {
+            break;
+        }
     }
 
     cli_settings.muxer.close();
