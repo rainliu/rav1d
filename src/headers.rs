@@ -1,147 +1,166 @@
+use std::fmt;
+
 // Constants from Section 3. "Symbols and abbreviated terms"
-pub const RAV1D_MAX_CDEF_STRENGTHS: usize = 8;
-pub const RAV1D_MAX_OPERATING_POINTS: usize = 32;
-pub const RAV1D_MAX_TILE_COLS: usize = 64;
-pub const RAV1D_MAX_TILE_ROWS: usize = 64;
-pub const RAV1D_MAX_SEGMENTS: usize = 8;
-pub const RAV1D_NUM_REF_FRAMES: usize = 8;
-pub const RAV1D_PRIMARY_REF_NONE: usize = 7;
-pub const RAV1D_REFS_PER_FRAME: usize = 7;
-pub const RAV1D_TOTAL_REFS_PER_FRAME: usize = (RAV1D_REFS_PER_FRAME + 1);
+pub const MAX_CDEF_STRENGTHS: usize = 8;
+pub const MAX_OPERATING_POINTS: usize = 32;
+pub const MAX_TILE_COLS: usize = 64;
+pub const MAX_TILE_ROWS: usize = 64;
+pub const MAX_SEGMENTS: usize = 8;
+pub const NUM_REF_FRAMES: usize = 8;
+pub const PRIMARY_REF_NONE: usize = 7;
+pub const REFS_PER_FRAME: usize = 7;
+pub const TOTAL_REFS_PER_FRAME: usize = (REFS_PER_FRAME + 1);
 
-pub enum Rav1dTxfmMode {
-    RAV1D_TX_4X4_ONLY,
-    RAV1D_TX_LARGEST,
-    RAV1D_TX_SWITCHABLE,
-    RAV1D_N_TX_MODES,
+#[derive(Copy, Clone, Debug)]
+pub enum TxfmMode {
+    TX_4X4_ONLY,
+    TX_LARGEST,
+    TX_SWITCHABLE,
+    N_TX_MODES,
 }
 
-pub enum Rav1dFilterMode {
-    RAV1D_FILTER_8TAP_REGULAR,
-    RAV1D_FILTER_8TAP_SMOOTH,
-    RAV1D_FILTER_8TAP_SHARP,
-    RAV1D_N_SWITCHABLE_FILTERS,
-    //RAV1D_FILTER_BILINEAR = RAV1D_N_SWITCHABLE_FILTERS,
-    RAV1D_N_FILTERS,
-    //RAV1D_FILTER_SWITCHABLE = RAV1D_N_FILTERS,
+#[derive(Copy, Clone, Debug)]
+pub enum FilterMode {
+    FILTER_8TAP_REGULAR,
+    FILTER_8TAP_SMOOTH,
+    FILTER_8TAP_SHARP,
+    N_SWITCHABLE_FILTERS,
+    //FILTER_BILINEAR = N_SWITCHABLE_FILTERS,
+    N_FILTERS,
+    //FILTER_SWITCHABLE = N_FILTERS,
 }
 
-pub enum Rav1dAdaptiveBoolean {
-    RAV1D_OFF = 0,
-    RAV1D_ON = 1,
-    RAV1D_ADAPTIVE = 2,
+#[derive(Copy, Clone, Debug)]
+pub enum AdaptiveBoolean {
+    OFF = 0,
+    ON = 1,
+    ADAPTIVE = 2,
 }
 
-pub enum Rav1dRestorationType {
-    RAV1D_RESTORATION_NONE,
-    RAV1D_RESTORATION_SWITCHABLE,
-    RAV1D_RESTORATION_WIENER,
-    RAV1D_RESTORATION_SGRPROJ,
+#[derive(Copy, Clone, Debug)]
+pub enum RestorationType {
+    RESTORATION_NONE,
+    RESTORATION_SWITCHABLE,
+    RESTORATION_WIENER,
+    RESTORATION_SGRPROJ,
 }
 
-pub enum Rav1dWarpedMotionType {
-    RAV1D_WM_TYPE_IDENTITY,
-    RAV1D_WM_TYPE_TRANSLATION,
-    RAV1D_WM_TYPE_ROT_ZOOM,
-    RAV1D_WM_TYPE_AFFINE,
+#[derive(Copy, Clone, Debug)]
+pub enum WarpedMotionType {
+    WM_TYPE_IDENTITY,
+    WM_TYPE_TRANSLATION,
+    WM_TYPE_ROT_ZOOM,
+    WM_TYPE_AFFINE,
 }
 
-pub struct Rav1dWarpedMotionParamsStruct {
+#[derive(Copy, Clone, Debug)]
+pub struct WarpedMotionParamsStruct {
     alpha: i16,
     beta: i16,
     gamma: i16,
     delta: i16,
 }
-pub enum Rav1dWarpedMotionParamsUnion {
-    Abgd(Rav1dWarpedMotionParamsStruct),
+
+#[derive(Copy, Clone, Debug)]
+pub enum WarpedMotionParamsUnion {
+    Abgd(WarpedMotionParamsStruct),
     Abcd([i16; 4]),
 }
 
-pub struct Rav1dWarpedMotionParams {
-    t: Rav1dWarpedMotionType,
+#[derive(Copy, Clone, Debug)]
+pub struct WarpedMotionParams {
+    t: WarpedMotionType,
     matrix: [i32; 6],
-    u: Rav1dWarpedMotionParamsUnion,
+    u: WarpedMotionParamsUnion,
 }
 
-pub enum Rav1dPixelLayout {
-    RAV1D_PIXEL_LAYOUT_I400, // monochrome
-    RAV1D_PIXEL_LAYOUT_I420, // 4:2:0 planar
-    RAV1D_PIXEL_LAYOUT_I422, // 4:2:2 planar
-    RAV1D_PIXEL_LAYOUT_I444, // 4:4:4 planar
+#[derive(Copy, Clone, Debug)]
+pub enum PixelLayout {
+    PIXEL_LAYOUT_I400, // monochrome
+    PIXEL_LAYOUT_I420, // 4:2:0 planar
+    PIXEL_LAYOUT_I422, // 4:2:2 planar
+    PIXEL_LAYOUT_I444, // 4:4:4 planar
 }
 
-pub enum Rav1dFrameType {
-    RAV1D_FRAME_TYPE_KEY = 0,    // Key Intra frame
-    RAV1D_FRAME_TYPE_INTER = 1,  // Inter frame
-    RAV1D_FRAME_TYPE_INTRA = 2,  // Non key Intra frame
-    RAV1D_FRAME_TYPE_SWITCH = 3, // Switch Inter frame
+#[derive(Copy, Clone, Debug)]
+pub enum FrameType {
+    FRAME_TYPE_KEY = 0,    // Key Intra frame
+    FRAME_TYPE_INTER = 1,  // Inter frame
+    FRAME_TYPE_INTRA = 2,  // Non key Intra frame
+    FRAME_TYPE_SWITCH = 3, // Switch Inter frame
 }
 
-pub enum Rav1dColorPrimaries {
-    RAV1D_COLOR_PRI_BT709 = 1,
-    RAV1D_COLOR_PRI_UNKNOWN = 2,
-    RAV1D_COLOR_PRI_BT470M = 4,
-    RAV1D_COLOR_PRI_BT470BG = 5,
-    RAV1D_COLOR_PRI_BT601 = 6,
-    RAV1D_COLOR_PRI_SMPTE240 = 7,
-    RAV1D_COLOR_PRI_FILM = 8,
-    RAV1D_COLOR_PRI_BT2020 = 9,
-    RAV1D_COLOR_PRI_XYZ = 10,
-    RAV1D_COLOR_PRI_SMPTE431 = 11,
-    RAV1D_COLOR_PRI_SMPTE432 = 12,
-    RAV1D_COLOR_PRI_EBU3213 = 22,
+#[derive(Copy, Clone, Debug)]
+pub enum ColorPrimaries {
+    COLOR_PRI_BT709 = 1,
+    COLOR_PRI_UNKNOWN = 2,
+    COLOR_PRI_BT470M = 4,
+    COLOR_PRI_BT470BG = 5,
+    COLOR_PRI_BT601 = 6,
+    COLOR_PRI_SMPTE240 = 7,
+    COLOR_PRI_FILM = 8,
+    COLOR_PRI_BT2020 = 9,
+    COLOR_PRI_XYZ = 10,
+    COLOR_PRI_SMPTE431 = 11,
+    COLOR_PRI_SMPTE432 = 12,
+    COLOR_PRI_EBU3213 = 22,
 }
 
-pub enum Rav1dTransferCharacteristics {
-    RAV1D_TRC_BT709 = 1,
-    RAV1D_TRC_UNKNOWN = 2,
-    RAV1D_TRC_BT470M = 4,
-    RAV1D_TRC_BT470BG = 5,
-    RAV1D_TRC_BT601 = 6,
-    RAV1D_TRC_SMPTE240 = 7,
-    RAV1D_TRC_LINEAR = 8,
-    RAV1D_TRC_LOG100 = 9,         // logarithmic (100:1 range)
-    RAV1D_TRC_LOG100_SQRT10 = 10, // lograithmic (100*sqrt(10):1 range)
-    RAV1D_TRC_IEC61966 = 11,
-    RAV1D_TRC_BT1361 = 12,
-    RAV1D_TRC_SRGB = 13,
-    RAV1D_TRC_BT2020_10BIT = 14,
-    RAV1D_TRC_BT2020_12BIT = 15,
-    RAV1D_TRC_SMPTE2084 = 16, // PQ
-    RAV1D_TRC_SMPTE428 = 17,
-    RAV1D_TRC_HLG = 18, // hybrid log/gamma (BT.2100 / ARIB STD-B67)
+#[derive(Copy, Clone, Debug)]
+pub enum TransferCharacteristics {
+    TRC_BT709 = 1,
+    TRC_UNKNOWN = 2,
+    TRC_BT470M = 4,
+    TRC_BT470BG = 5,
+    TRC_BT601 = 6,
+    TRC_SMPTE240 = 7,
+    TRC_LINEAR = 8,
+    TRC_LOG100 = 9,         // logarithmic (100:1 range)
+    TRC_LOG100_SQRT10 = 10, // lograithmic (100*sqrt(10):1 range)
+    TRC_IEC61966 = 11,
+    TRC_BT1361 = 12,
+    TRC_SRGB = 13,
+    TRC_BT2020_10BIT = 14,
+    TRC_BT2020_12BIT = 15,
+    TRC_SMPTE2084 = 16, // PQ
+    TRC_SMPTE428 = 17,
+    TRC_HLG = 18, // hybrid log/gamma (BT.2100 / ARIB STD-B67)
 }
 
-pub enum Rav1dMatrixCoefficients {
-    RAV1D_MC_IDENTITY = 0,
-    RAV1D_MC_BT709 = 1,
-    RAV1D_MC_UNKNOWN = 2,
-    RAV1D_MC_FCC = 4,
-    RAV1D_MC_BT470BG = 5,
-    RAV1D_MC_BT601 = 6,
-    RAV1D_MC_SMPTE240 = 7,
-    RAV1D_MC_SMPTE_YCGCO = 8,
-    RAV1D_MC_BT2020_NCL = 9,
-    RAV1D_MC_BT2020_CL = 10,
-    RAV1D_MC_SMPTE2085 = 11,
-    RAV1D_MC_CHROMAT_NCL = 12, // Chromaticity-derived
-    RAV1D_MC_CHROMAT_CL = 13,
-    RAV1D_MC_ICTCP = 14,
+#[derive(Copy, Clone, Debug)]
+pub enum MatrixCoefficients {
+    MC_IDENTITY = 0,
+    MC_BT709 = 1,
+    MC_UNKNOWN = 2,
+    MC_FCC = 4,
+    MC_BT470BG = 5,
+    MC_BT601 = 6,
+    MC_SMPTE240 = 7,
+    MC_SMPTE_YCGCO = 8,
+    MC_BT2020_NCL = 9,
+    MC_BT2020_CL = 10,
+    MC_SMPTE2085 = 11,
+    MC_CHROMAT_NCL = 12, // Chromaticity-derived
+    MC_CHROMAT_CL = 13,
+    MC_ICTCP = 14,
 }
 
-pub enum Rav1dChromaSamplePosition {
-    RAV1D_CHR_UNKNOWN = 0,
-    RAV1D_CHR_VERTICAL = 1, // Horizontally co-located with luma(0, 0)
+#[derive(Copy, Clone, Debug)]
+pub enum ChromaSamplePosition {
+    CHR_UNKNOWN = 0,
+    CHR_VERTICAL = 1, // Horizontally co-located with luma(0, 0)
     // sample, between two vertical samples
-    RAV1D_CHR_COLOCATED = 2, // Co-located with luma(0, 0) sample
+    CHR_COLOCATED = 2, // Co-located with luma(0, 0) sample
 }
 
-pub struct Rav1dContentLightLevel {
+#[derive(Copy, Clone, Debug)]
+pub struct ContentLightLevel {
     max_content_light_level: isize,
     max_frame_average_light_level: isize,
 }
 
-pub struct Rav1dMasteringDisplay {
+#[derive(Copy, Clone, Debug)]
+pub struct MasteringDisplay {
     // 0.16 fixed point
     primaries: [[u16; 3]; 2], //TODO: confirm [3][2]?
     // 0.16 fixed point
@@ -152,7 +171,8 @@ pub struct Rav1dMasteringDisplay {
     min_luminance: u32,
 }
 
-pub struct Rav1dSequenceHeaderOperatingPoint {
+#[derive(Copy, Clone, Debug)]
+pub struct SequenceHeaderOperatingPoint {
     major_level: isize,
     minor_level: isize,
     initial_display_delay: isize,
@@ -162,13 +182,15 @@ pub struct Rav1dSequenceHeaderOperatingPoint {
     display_model_param_present: isize,
 }
 
-pub struct Rav1dSequenceHeaderOperatingParameterInfo {
+#[derive(Copy, Clone, Debug)]
+pub struct SequenceHeaderOperatingParameterInfo {
     decoder_buffer_delay: isize,
     encoder_buffer_delay: isize,
     low_delay_mode: isize,
 }
 
-pub struct Rav1dSequenceHeader {
+#[derive(Copy, Clone, Debug)]
+pub struct SequenceHeader {
     /**
      * Stream profile, 0 for 8-10 bits/component 4:2:0 or monochrome;
      * 1 for 8-10 bits/component 4:4:4; 2 for 4:2:2 at any bits/component,
@@ -182,11 +204,11 @@ pub struct Rav1dSequenceHeader {
      */
     max_width: isize,
     max_height: isize,
-    layout: Rav1dPixelLayout,          // format of the picture
-    pri: Rav1dColorPrimaries,          // color primaries (av1)
-    trc: Rav1dTransferCharacteristics, // transfer characteristics (av1)
-    mtrx: Rav1dMatrixCoefficients,     // matrix coefficients (av1)
-    chr: Rav1dChromaSamplePosition,    // chroma sample position (av1)
+    layout: PixelLayout,          // format of the picture
+    pri: ColorPrimaries,          // color primaries (av1)
+    trc: TransferCharacteristics, // transfer characteristics (av1)
+    mtrx: MatrixCoefficients,     // matrix coefficients (av1)
+    chr: ChromaSamplePosition,    // chroma sample position (av1)
     /**
      * 0, 1 and 2 mean 8, 10 or 12 bits/component, respectively. This is not
      * exactly the same as 'hbd' from the spec; the spec's hbd distinguishes
@@ -202,7 +224,7 @@ pub struct Rav1dSequenceHeader {
     color_range: isize,
 
     num_operating_points: usize,
-    operating_points: [Rav1dSequenceHeaderOperatingPoint; RAV1D_MAX_OPERATING_POINTS],
+    operating_points: [SequenceHeaderOperatingPoint; MAX_OPERATING_POINTS],
 
     still_picture: isize,
     reduced_still_picture_header: isize,
@@ -232,8 +254,8 @@ pub struct Rav1dSequenceHeader {
     order_hint: isize,
     jnt_comp: isize,
     ref_frame_mvs: isize,
-    screen_content_tools: Rav1dAdaptiveBoolean,
-    force_integer_mv: Rav1dAdaptiveBoolean,
+    screen_content_tools: AdaptiveBoolean,
+    force_integer_mv: AdaptiveBoolean,
     order_hint_n_bits: isize,
     super_res: isize,
     cdef: isize,
@@ -245,17 +267,17 @@ pub struct Rav1dSequenceHeader {
     separate_uv_delta_q: isize,
     film_grain_present: isize,
 
-    // Rav1dSequenceHeaders of the same sequence are required to be
+    // SequenceHeaders of the same sequence are required to be
     // bit-identical until this offset. See 7.5 "Ordering of OBUs":
     //   Within a particular coded video sequence, the contents of
     //   sequence_header_obu must be bit-identical each time the
     //   sequence header appears except for the contents of
     //   operating_parameters_info.
-    operating_parameter_info:
-        [Rav1dSequenceHeaderOperatingParameterInfo; RAV1D_MAX_OPERATING_POINTS],
+    operating_parameter_info: [SequenceHeaderOperatingParameterInfo; MAX_OPERATING_POINTS],
 }
 
-pub struct Rav1dSegmentationData {
+#[derive(Copy, Clone, Debug)]
+pub struct SegmentationData {
     delta_q: isize,
     delta_lf_y_v: isize,
     delta_lf_y_h: isize,
@@ -266,18 +288,21 @@ pub struct Rav1dSegmentationData {
     globalmv: isize,
 }
 
-pub struct Rav1dSegmentationDataSet {
-    d: [Rav1dSegmentationData; RAV1D_MAX_SEGMENTS],
+#[derive(Copy, Clone, Debug)]
+pub struct SegmentationDataSet {
+    d: [SegmentationData; MAX_SEGMENTS],
     preskip: isize,
     last_active_segid: isize,
 }
 
-pub struct Rav1dLoopfilterModeRefDeltas {
+#[derive(Copy, Clone, Debug)]
+pub struct LoopfilterModeRefDeltas {
     mode_delta: [isize; 2],
-    ref_delta: [isize; RAV1D_TOTAL_REFS_PER_FRAME],
+    ref_delta: [isize; TOTAL_REFS_PER_FRAME],
 }
 
-pub struct Rav1dFilmGrainData {
+#[derive(Copy, Clone, Debug)]
+pub struct FilmGrainData {
     seed: u16,
     num_y_points: isize,
     y_points: [[u8; 14]; 2], //TODO: [14][2]
@@ -297,22 +322,26 @@ pub struct Rav1dFilmGrainData {
     clip_to_restricted_range: isize,
 }
 
-pub struct Rav1dFilmGrain {
+#[derive(Copy, Clone, Debug)]
+pub struct FilmGrain {
     present: isize,
     update: isize,
-    data: Rav1dFilmGrainData,
+    data: FilmGrainData,
 }
 
-pub struct Rav1dFrameHeaderOperatingPoint {
+#[derive(Copy, Clone, Debug)]
+pub struct FrameHeaderOperatingPoint {
     buffer_removal_time: isize,
 }
 
-pub struct Rav1dSuperResolution {
+#[derive(Copy, Clone, Debug)]
+pub struct SuperResolution {
     width_scale_denominator: isize,
     enabled: isize,
 }
 
-pub struct Rav1dTiling {
+#[derive(Copy, Clone)]
+pub struct Tiling {
     uniform: isize,
     n_bytes: usize,
     min_log2_cols: isize,
@@ -323,12 +352,48 @@ pub struct Rav1dTiling {
     max_log2_rows: isize,
     log2_rows: isize,
     rows: isize,
-    col_start_sb: [u16; RAV1D_MAX_TILE_COLS + 1],
-    row_start_sb: [u16; RAV1D_MAX_TILE_ROWS + 1],
+    col_start_sb: [u16; MAX_TILE_COLS + 1],
+    row_start_sb: [u16; MAX_TILE_ROWS + 1],
     update: isize,
 }
 
-pub struct Rav1dQuant {
+impl fmt::Debug for Tiling {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Tiling - \
+             uniform: {} \
+             n_bytes: {} \
+             min_log2_cols: {} \
+             max_log2_cols: {} \
+             log2_cols: {} \
+             cols:  {} \
+             min_log2_rows: {} \
+             max_log2_rows: {} \
+             log2_rows: {} \
+             rows: {} \
+             col_start_sb: {} \
+             row_start_sb: {} \
+             update: {}",
+            self.uniform,
+            self.n_bytes,
+            self.min_log2_cols,
+            self.max_log2_cols,
+            self.log2_cols,
+            self.cols,
+            self.min_log2_rows,
+            self.max_log2_rows,
+            self.log2_rows,
+            self.rows,
+            self.col_start_sb.len(),
+            self.row_start_sb.len(),
+            self.update,
+        )
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct Quant {
     yac: isize,
     ydc_delta: isize,
     udc_delta: isize,
@@ -341,60 +406,68 @@ pub struct Rav1dQuant {
     qm_v: isize,
 }
 
-pub struct Rav1dSegmentation {
+#[derive(Copy, Clone, Debug)]
+pub struct Segmentation {
     enabled: isize,
     update_map: isize,
     temporal: isize,
     update_data: isize,
-    seg_data: Rav1dSegmentationDataSet,
-    lossless: [isize; RAV1D_MAX_SEGMENTS],
-    qidx: [isize; RAV1D_MAX_SEGMENTS],
+    seg_data: SegmentationDataSet,
+    lossless: [isize; MAX_SEGMENTS],
+    qidx: [isize; MAX_SEGMENTS],
 }
 
-pub struct Rav1dQ {
+#[derive(Copy, Clone, Debug)]
+pub struct Q {
     present: isize,
     res_log2: isize,
 }
 
-pub struct Rav1dLF {
+#[derive(Copy, Clone, Debug)]
+pub struct LF {
     present: isize,
     res_log2: isize,
     multi: isize,
 }
 
-pub struct Rav1dDelta {
-    q: Rav1dQ,
-    lf: Rav1dLF,
+#[derive(Copy, Clone, Debug)]
+pub struct Delta {
+    q: Q,
+    lf: LF,
 }
 
-pub struct Rav1dLoopFilter {
+#[derive(Copy, Clone, Debug)]
+pub struct LoopFilter {
     level_y: [isize; 2],
     level_u: isize,
     level_v: isize,
     mode_ref_delta_enabled: isize,
     mode_ref_delta_update: isize,
-    mode_ref_deltas: Rav1dLoopfilterModeRefDeltas,
+    mode_ref_deltas: LoopfilterModeRefDeltas,
     sharpness: isize,
 }
 
-pub struct Rav1dCDEF {
+#[derive(Copy, Clone, Debug)]
+pub struct CDEF {
     damping: isize,
     n_bits: isize,
-    y_strength: [isize; RAV1D_MAX_CDEF_STRENGTHS],
-    uv_strength: [isize; RAV1D_MAX_CDEF_STRENGTHS],
+    y_strength: [isize; MAX_CDEF_STRENGTHS],
+    uv_strength: [isize; MAX_CDEF_STRENGTHS],
 }
 
-pub struct Rav1dRestoration {
-    t: [Rav1dRestorationType; 3],
+#[derive(Copy, Clone, Debug)]
+pub struct Restoration {
+    t: [RestorationType; 3],
     unit_size: [isize; 2],
 }
 
-pub struct Rav1dFrameHeader {
-    frame_type: Rav1dFrameType, // type of the picture
+#[derive(Copy, Clone, Debug)]
+pub struct FrameHeader {
+    frame_type: FrameType, // type of the picture
     width: [isize; 2],
     height: isize,
-    frame_offset: isize,        // frame number
-    film_grain: Rav1dFilmGrain, // film grain parameters
+    frame_offset: isize,   // frame number
+    film_grain: FilmGrain, // film grain parameters
     temporal_id: isize,
     spatial_id: isize, // spatial and temporal id of the frame for SVC
     show_existing_frame: isize,
@@ -410,34 +483,34 @@ pub struct Rav1dFrameHeader {
     frame_size_override: isize,
     primary_ref_frame: isize,
     buffer_removal_time_present: isize,
-    operating_points: [Rav1dFrameHeaderOperatingPoint; RAV1D_MAX_OPERATING_POINTS],
+    operating_points: [FrameHeaderOperatingPoint; MAX_OPERATING_POINTS],
     refresh_frame_flags: isize,
     render_width: isize,
     render_height: isize,
-    super_res: Rav1dSuperResolution,
+    super_res: SuperResolution,
     have_render_size: isize,
     allow_intrabc: isize,
     frame_ref_short_signaling: isize,
-    refidx: [isize; RAV1D_REFS_PER_FRAME],
+    refidx: [isize; REFS_PER_FRAME],
     hp: isize,
-    subpel_filter_mode: Rav1dFilterMode,
+    subpel_filter_mode: FilterMode,
     switchable_motion_mode: isize,
     use_ref_frame_mvs: isize,
     refresh_context: isize,
-    tiling: Rav1dTiling,
-    quant: Rav1dQuant,
-    segmentation: Rav1dSegmentation,
-    delta: Rav1dDelta,
+    tiling: Tiling,
+    quant: Quant,
+    segmentation: Segmentation,
+    delta: Delta,
     all_lossless: isize,
-    loopfilter: Rav1dLoopFilter,
-    cdef: Rav1dCDEF,
-    restoration: Rav1dRestoration,
-    txfm_mode: Rav1dTxfmMode,
+    loopfilter: LoopFilter,
+    cdef: CDEF,
+    restoration: Restoration,
+    txfm_mode: TxfmMode,
     switchable_comp_refs: isize,
     skip_mode_allowed: isize,
     skip_mode_enabled: isize,
     skip_mode_refs: [isize; 2],
     warp_motion: isize,
     reduced_txtp_set: isize,
-    gmv: [Rav1dWarpedMotionParams; RAV1D_REFS_PER_FRAME],
+    gmv: [WarpedMotionParams; REFS_PER_FRAME],
 }

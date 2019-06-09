@@ -3,7 +3,9 @@ use crate::util::Pixel;
 
 use std::{cmp, fmt, io};
 
-#[derive(Copy, Clone, Debug, PartialEq)] //, FromPrimitive
+use num_derive::*;
+
+#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum ChromaSampling {
     Cs420,
@@ -31,7 +33,7 @@ impl ChromaSampling {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)] //, FromPrimitive
+#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum ChromaSamplePosition {
     Unknown,
@@ -64,9 +66,6 @@ pub struct Point {
     pub x: u16,
     pub y: u16,
 }
-
-const RAV1D_MAX_FRAME_THREADS: usize = 256;
-const RAV1D_MAX_TILE_THREADS: usize = 64;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Config {
