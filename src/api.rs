@@ -1,9 +1,41 @@
 use crate::headers::*;
 use crate::util::Pixel;
+use crate::frame::Frame;
 
 use std::{cmp, fmt, io};
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use num_derive::*;
+
+
+#[derive(Clone, Copy, Debug)]
+pub enum CodecStatus {
+    /// The codec needs more data to produce an output Packet/Frame
+    NeedMoreData,
+    /// There are enough Frames/Packets queue
+    EnoughData,
+    /// The codec already produced the number of frames/packets requested
+    LimitReached,
+    /// A Frame had been encoded/decoded but not emitted yet
+    Encoded,
+    /// Generic fatal error
+    Failure,
+    /// A Frame had been decoded but not emitted yet
+    Decoded,
+}
+
+pub struct Packet {
+    pub data: Vec<u8>,
+    pub pts: u64,
+}
+
+impl fmt::Display for Packet {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Frame {} - {} bytes", self.pts, self.data.len())
+    }
+}
+
 
 #[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
@@ -89,17 +121,16 @@ impl Default for Config {
 }
 
 impl Config {
-    /*
     pub fn new_context<T: Pixel>(&self) -> Context<T> {
-        assert!(8 * std::mem::size_of::<T>() >= self.enc.bit_depth, "The Pixel u{} does not match the Config bit_depth {}",
-                8 * std::mem::size_of::<T>(), self.enc.bit_depth);
+        //assert!(8 * std::mem::size_of::<T>() >= self.enc.bit_depth, "The Pixel u{} does not match the Config bit_depth {}",
+        //        8 * std::mem::size_of::<T>(), self.enc.bit_depth);
 
-        let pool = rayon::ThreadPoolBuilder::new().num_threads(self.threads).build().unwrap();
+        //let pool = rayon::ThreadPoolBuilder::new().num_threads(self.threads).build().unwrap();
 
-        let mut config = self.enc.clone();
+        let mut config = self.clone();
 
         // FIXME: inter unsupported with 4:2:2 and 4:4:4 chroma sampling
-        let chroma_sampling = config.chroma_sampling;
+        /*let chroma_sampling = config.chroma_sampling;
         let keyframe_only = chroma_sampling == ChromaSampling::Cs444 ||
             chroma_sampling == ChromaSampling::Cs422;
         if keyframe_only {
@@ -109,71 +140,85 @@ impl Config {
         // FIXME: tx partition for intra not supported for chroma 422
         if chroma_sampling == ChromaSampling::Cs422 {
             config.speed_settings.rdo_tx_decision = false;
-        }
+        }*/
 
         let inner = ContextInner::new(&config);
 
         Context {
             inner,
-            pool,
-            config
+            config,
+            //pool,
         }
-    }*/
+    }
 }
 
-pub struct ContextInner {
-    //<T: Pixel>
-/*frame_count: u64,
-limit: u64,
-pub(crate) idx: u64,
-frames_processed: u64,
-/// Maps frame *number* to frames
-frame_q: BTreeMap<u64, Option<Arc<Frame<T>>>>, //    packet_q: VecDeque<Packet>
-/// Maps frame *idx* to frame data
-frame_invariants: BTreeMap<u64, FrameInvariants<T>>,
-/// A list of keyframe *numbers* in this encode. Needed so that we don't
-/// need to keep all of the frame_invariants in memory for the whole life of the encode.
-keyframes: BTreeSet<u64>,
-/// A storage space for reordered frames.
-packet_data: Vec<u8>,
-segment_start_idx: u64,
-segment_start_frame: u64,
-keyframe_detector: SceneChangeDetector<T>,
-pub(crate) config: EncoderConfig,
-rc_state: RCState,
-maybe_prev_log_base_q: Option<i64>,
-pub first_pass_data: FirstPassData,*/}
+pub struct ContextInner<T: Pixel> {
+    /*frame_count: u64,
+    limit: u64,
+    pub(crate) idx: u64,
+    frames_processed: u64,
+    /// Maps frame *number* to frames
+    frame_q: BTreeMap<u64, Option<Arc<Frame<T>>>>, //    packet_q: VecDeque<Packet>
+    /// Maps frame *idx* to frame data
+    frame_invariants: BTreeMap<u64, FrameInvariants<T>>,
+    /// A list of keyframe *numbers* in this encode. Needed so that we don't
+    /// need to keep all of the frame_invariants in memory for the whole life of the encode.
+    keyframes: BTreeSet<u64>,
+    /// A storage space for reordered frames.
+    packet_data: Vec<u8>,*/
 
-pub struct Context {
+    frame_q: BTreeMap<u64, Option<Arc<Frame<T>>>>,
+    packet_q: BTreeMap<u64, Option<Arc<Packet>>>,
+    pub(crate) config: Config,
+}
+
+impl<T: Pixel> ContextInner<T> {
+    pub fn new(c: &Config) -> Self {
+        ContextInner {
+            frame_q: BTreeMap::new(),
+            packet_q: BTreeMap::new(),
+            config: c.clone(),
+        }
+    }
+}
+
+pub struct Context<T: Pixel> {
     //<T: Pixel>
-    inner: ContextInner, //<T>,
+    inner: ContextInner<T>,
     config: Config,
     //pool: rayon::ThreadPool,
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum CodecStatus {
-    /// The codec needs more data to produce an output Packet/Frame
-    NeedMoreData,
-    /// There are enough Frames/Packets queue
-    EnoughData,
-    /// The codec already produced the number of frames/packets requested
-    LimitReached,
-    /// A Frame had been encoded/decoded but not emitted yet
-    Encoded,
-    /// Generic fatal error
-    Failure,
-    /// A Frame had been decoded but not emitted yet
-    Decoded,
-}
+impl<T: Pixel> Context<T> {
 
-pub struct Packet {
-    pub data: Vec<u8>,
-    pub pts: u64,
-}
+    pub fn send_packet<P>(&mut self, pkt: P) -> Result<(), CodecStatus>
+        where
+            P: Into<Option<Arc<Packet>>>,
+    {
+        /*let frame = frame.into();
 
-impl fmt::Display for Packet {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Frame {} - {} bytes", self.pts, self.data.len())
+        if frame.is_none() {
+            self.inner.limit = self.inner.frame_count;
+        }
+
+        self.inner.send_frame(frame)
+        */
+        Ok(())
+    }
+
+    pub fn receive_frame(&mut self) -> Result<Frame<T>, CodecStatus> {
+       /*let inner = &mut self.inner;
+        let pool = &mut self.pool;
+
+        pool.install(|| inner.receive_packet())*/
+        Ok(Frame::new(
+           128,
+            128,
+           ChromaSampling::Cs420,
+        ))
+    }
+
+    pub fn flush(&mut self) {
+        self.send_packet(None).unwrap();
     }
 }

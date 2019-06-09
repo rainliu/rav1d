@@ -5,6 +5,7 @@ use self::TxType::*;
 
 use crate::plane::*;
 
+pub const SUBPEL_FILTER_SIZE: usize = 8;
 
 pub const PLANES: usize = 3;
 
