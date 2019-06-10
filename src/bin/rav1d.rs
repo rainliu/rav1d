@@ -4,6 +4,7 @@ mod muxer;
 
 use clap::{App, AppSettings, Arg};
 use rav1d::api::*;
+use rav1d::util::Pixel;
 
 use std::io;
 use std::sync::Arc;
@@ -94,9 +95,51 @@ pub fn parse_cli() -> CLISettings {
     }
 }
 
+// Decode and write a frame, returns frame information.
+fn process_frame(
+    ctx: &mut Context<u8>,
+    demuxer: &mut dyn demuxer::Demuxer,
+    muxer: &mut dyn muxer::Muxer,
+    count: &mut usize,
+    limit: usize,
+) -> Option<Vec<common::FrameSummary>> {
+    let mut frame_summaries = Vec::new();
+    let frame_wrapped = ctx.receive_frame();
+    match frame_wrapped {
+        Ok(frame) => {
+            muxer.write(&frame);
+            frame_summaries.push(frame.into());
+        }
+        Err(CodecStatus::NeedMoreData) => {
+            match demuxer.read() {
+                Ok(pkt) => {
+                    ctx.send_packet(Some(Arc::new(pkt)));
+                }
+                _ => {
+                    ctx.flush();
+                }
+            };
+        }
+        Err(CodecStatus::EnoughData) => {
+            unreachable!();
+        }
+        Err(CodecStatus::LimitReached) => {
+            return None;
+        }
+        Err(CodecStatus::Failure) => {
+            panic!("Failed to decode video");
+        }
+        Err(CodecStatus::Decoded) => {}
+    }
+    Some(frame_summaries)
+}
+
 fn main() -> io::Result<()> {
     let mut cli = parse_cli();
-    let cfg = Config {threads: cli.threads, ..Default::default()};
+    let cfg = Config {
+        threads: cli.threads,
+        ..Default::default()
+    };
     let video_info = cli.demuxer.open()?;
     if !cli.verbose {
         eprintln!("{:?}", video_info);
@@ -109,19 +152,18 @@ fn main() -> io::Result<()> {
     }
 
     // TODO: use seq header probe to find out pixel type
-    let mut ctx:Context<u8> = cfg.new_context();
+    let mut ctx: Context<u8> = cfg.new_context();
 
-    let mut n_out = 0;
+    let mut count = 0;
     while let Ok(pkt) = cli.demuxer.read() {
         eprintln!("{}", pkt);
 
         ctx.send_packet(Some(Arc::new(pkt)));
 
-
         //let res = rav1d_get_picture(&ctx, )
-        n_out += 1;
+        count += 1;
 
-        if cli.limit != 0 && n_out == cli.limit {
+        if cli.limit != 0 && count == cli.limit {
             break;
         }
     }

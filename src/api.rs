@@ -17,12 +17,10 @@ pub enum CodecStatus {
     EnoughData,
     /// The codec already produced the number of frames/packets requested
     LimitReached,
-    /// A Frame had been encoded/decoded but not emitted yet
-    Encoded,
-    /// Generic fatal error
-    Failure,
     /// A Frame had been decoded but not emitted yet
     Decoded,
+    /// Generic fatal error
+    Failure,
 }
 
 pub struct Packet {
