@@ -7,7 +7,6 @@ use crate::context::{MAX_SB_SIZE, SUBPEL_FILTER_SIZE};
 
 use std::fmt;
 
-
 const FRAME_MARGIN: usize = 16 + SUBPEL_FILTER_SIZE;
 
 #[allow(dead_code, non_camel_case_types)]
@@ -17,7 +16,7 @@ pub enum FrameType {
     KEY,
     INTER,
     INTRA_ONLY,
-    SWITCH
+    SWITCH,
 }
 
 impl fmt::Display for FrameType {
@@ -58,21 +57,23 @@ impl<T: Pixel> Frame<T> {
 
         Frame {
             planes: [
+                Plane::new(luma_width, luma_height, 0, 0, luma_padding, luma_padding),
                 Plane::new(
-                    luma_width, luma_height,
-                    0, 0,
-                    luma_padding, luma_padding
+                    chroma_width,
+                    chroma_height,
+                    chroma_decimation_x,
+                    chroma_decimation_y,
+                    chroma_padding_x,
+                    chroma_padding_y,
                 ),
                 Plane::new(
-                    chroma_width, chroma_height,
-                    chroma_decimation_x, chroma_decimation_y,
-                    chroma_padding_x, chroma_padding_y
+                    chroma_width,
+                    chroma_height,
+                    chroma_decimation_x,
+                    chroma_decimation_y,
+                    chroma_padding_x,
+                    chroma_padding_y,
                 ),
-                Plane::new(
-                    chroma_width, chroma_height,
-                    chroma_decimation_x, chroma_decimation_y,
-                    chroma_padding_x, chroma_padding_y
-                )
             ],
             pts: 0,
             frame_type: FrameType::KEY,
@@ -85,19 +86,19 @@ impl<T: Pixel> Frame<T> {
             p.pad(w, h);
         }
     }
-/*
-    #[inline(always)]
-    pub fn as_tile(&self) -> Tile<'_, T> {
-        let PlaneConfig { width, height, .. } = self.planes[0].cfg;
-        Tile::new(self, TileRect { x: 0, y: 0, width, height })
-    }
+    /*
+        #[inline(always)]
+        pub fn as_tile(&self) -> Tile<'_, T> {
+            let PlaneConfig { width, height, .. } = self.planes[0].cfg;
+            Tile::new(self, TileRect { x: 0, y: 0, width, height })
+        }
 
-    #[inline(always)]
-    pub fn as_tile_mut(&mut self) -> TileMut<'_, T> {
-        let PlaneConfig { width, height, .. } = self.planes[0].cfg;
-        TileMut::new(self, TileRect { x: 0, y: 0, width, height })
-    }
-*/
+        #[inline(always)]
+        pub fn as_tile_mut(&mut self) -> TileMut<'_, T> {
+            let PlaneConfig { width, height, .. } = self.planes[0].cfg;
+            TileMut::new(self, TileRect { x: 0, y: 0, width, height })
+        }
+    */
     /// Returns a `PixelIter` containing the data of this frame's planes in YUV format.
     /// Each point in the `PixelIter` is a triple consisting of a Y, U, and V component.
     /// The `PixelIter` is laid out as contiguous rows, e.g. to get a given 0-indexed row
@@ -120,11 +121,7 @@ pub struct PixelIter<'a, T: Pixel> {
 
 impl<'a, T: Pixel> PixelIter<'a, T> {
     pub fn new(planes: &'a [Plane<T>; 3]) -> Self {
-        PixelIter {
-            planes,
-            y: 0,
-            x: 0,
-        }
+        PixelIter { planes, y: 0, x: 0 }
     }
 
     fn width(&self) -> usize {
@@ -145,8 +142,14 @@ impl<'a, T: Pixel> Iterator for PixelIter<'a, T> {
         }
         let pixel = (
             self.planes[0].p(self.x, self.y),
-            self.planes[1].p(self.x >> self.planes[1].cfg.xdec, self.y >> self.planes[1].cfg.ydec),
-            self.planes[2].p(self.x >> self.planes[2].cfg.xdec, self.y >> self.planes[2].cfg.ydec),
+            self.planes[1].p(
+                self.x >> self.planes[1].cfg.xdec,
+                self.y >> self.planes[1].cfg.ydec,
+            ),
+            self.planes[2].p(
+                self.x >> self.planes[2].cfg.xdec,
+                self.y >> self.planes[2].cfg.ydec,
+            ),
         );
         if self.x == self.width() - 1 {
             self.x = 0;

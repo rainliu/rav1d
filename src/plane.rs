@@ -397,7 +397,6 @@ impl<T: Pixel> Plane<T> {
     }
 }
 
-
 #[derive(Debug)]
 pub struct PlaneIter<'a, T: Pixel> {
     plane: &'a Plane<T>,
@@ -407,11 +406,7 @@ pub struct PlaneIter<'a, T: Pixel> {
 
 impl<'a, T: Pixel> PlaneIter<'a, T> {
     pub fn new(plane: &'a Plane<T>) -> Self {
-        Self {
-            plane,
-            y: 0,
-            x: 0,
-        }
+        Self { plane, y: 0, x: 0 }
     }
 
     fn width(&self) -> usize {
@@ -445,7 +440,7 @@ impl<'a, T: Pixel> Iterator for PlaneIter<'a, T> {
 pub struct PlaneSlice<'a, T: Pixel> {
     pub plane: &'a Plane<T>,
     pub x: isize,
-    pub y: isize
+    pub y: isize,
 }
 
 pub struct IterWidth<'a, T: Pixel> {
@@ -479,9 +474,9 @@ impl<'a, T: Pixel> Iterator for IterWidth<'a, T> {
     }
 }
 
-impl<'a, T: Pixel> ExactSizeIterator for IterWidth<'a, T> { }
+impl<'a, T: Pixel> ExactSizeIterator for IterWidth<'a, T> {}
 
-impl<'a, T: Pixel> FusedIterator for IterWidth<'a, T> { }
+impl<'a, T: Pixel> FusedIterator for IterWidth<'a, T> {}
 
 pub struct RowsIter<'a, T: Pixel> {
     plane: &'a Plane<T>,
@@ -538,7 +533,7 @@ impl<'a, T: Pixel> PlaneSlice<'a, T> {
             y: self
                 .y
                 .min(self.plane.cfg.height as isize)
-                .max(-(self.plane.cfg.yorigin as isize))
+                .max(-(self.plane.cfg.yorigin as isize)),
         }
     }
 
@@ -550,7 +545,7 @@ impl<'a, T: Pixel> PlaneSlice<'a, T> {
         PlaneSlice {
             plane: self.plane,
             x: self.x + xo as isize,
-            y: self.y + yo as isize
+            y: self.y + yo as isize,
         }
     }
 
@@ -558,25 +553,31 @@ impl<'a, T: Pixel> PlaneSlice<'a, T> {
         PlaneSlice {
             plane: self.plane,
             x: self.x + xo,
-            y: self.y + yo
+            y: self.y + yo,
         }
     }
 
     /// A slice starting i pixels above the current one.
     pub fn go_up(&self, i: usize) -> PlaneSlice<'a, T> {
-        PlaneSlice { plane: self.plane, x: self.x, y: self.y - i as isize }
+        PlaneSlice {
+            plane: self.plane,
+            x: self.x,
+            y: self.y - i as isize,
+        }
     }
 
     /// A slice starting i pixels to the left of the current one.
     pub fn go_left(&self, i: usize) -> PlaneSlice<'a, T> {
-        PlaneSlice { plane: self.plane, x: self.x - i as isize, y: self.y }
+        PlaneSlice {
+            plane: self.plane,
+            x: self.x - i as isize,
+            y: self.y,
+        }
     }
 
     pub fn p(&self, add_x: usize, add_y: usize) -> T {
-        let new_y =
-            (self.y + add_y as isize + self.plane.cfg.yorigin as isize) as usize;
-        let new_x =
-            (self.x + add_x as isize + self.plane.cfg.xorigin as isize) as usize;
+        let new_y = (self.y + add_y as isize + self.plane.cfg.yorigin as isize) as usize;
+        let new_x = (self.x + add_x as isize + self.plane.cfg.xorigin as isize) as usize;
         self.plane.data[new_y * self.plane.cfg.stride + new_x]
     }
 }
@@ -592,7 +593,7 @@ impl<'a, T: Pixel> Index<usize> for PlaneSlice<'a, T> {
 pub struct PlaneMutSlice<'a, T: Pixel> {
     pub plane: &'a mut Plane<T>,
     pub x: isize,
-    pub y: isize
+    pub y: isize,
 }
 
 pub struct RowsIterMut<'a, T: Pixel> {
@@ -660,10 +661,8 @@ impl<'a, T: Pixel> PlaneMutSlice<'a, T> {
 
     // FIXME: code duplication with PlaneSlice
     pub fn p(&self, add_x: usize, add_y: usize) -> T {
-        let new_y =
-            (self.y + add_y as isize + self.plane.cfg.yorigin as isize) as usize;
-        let new_x =
-            (self.x + add_x as isize + self.plane.cfg.xorigin as isize) as usize;
+        let new_y = (self.y + add_y as isize + self.plane.cfg.yorigin as isize) as usize;
+        let new_x = (self.x + add_x as isize + self.plane.cfg.xorigin as isize) as usize;
         self.plane.data[new_y * self.plane.cfg.stride + new_x]
     }
 }

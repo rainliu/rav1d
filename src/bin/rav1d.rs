@@ -4,7 +4,6 @@ mod muxer;
 
 use clap::{App, AppSettings, Arg};
 use rav1d::api::*;
-use rav1d::util::Pixel;
 
 use std::io;
 use std::sync::Arc;
@@ -97,28 +96,34 @@ pub fn parse_cli() -> CLISettings {
 
 // Decode and write a frame, returns frame information.
 fn process_frame(
+    cli: &mut CLISettings,
     ctx: &mut Context<u8>,
-    demuxer: &mut dyn demuxer::Demuxer,
-    muxer: &mut dyn muxer::Muxer,
     count: &mut usize,
-    limit: usize,
 ) -> Option<Vec<common::FrameSummary>> {
     let mut frame_summaries = Vec::new();
     let frame_wrapped = ctx.receive_frame();
     match frame_wrapped {
         Ok(frame) => {
-            muxer.write(&frame);
+            cli.muxer.write(&frame);
             frame_summaries.push(frame.into());
         }
         Err(CodecStatus::NeedMoreData) => {
-            match demuxer.read() {
-                Ok(pkt) => {
-                    ctx.send_packet(Some(Arc::new(pkt)));
-                }
-                _ => {
-                    ctx.flush();
-                }
-            };
+            if cli.limit != 0 && *count == cli.limit {
+                ctx.flush();
+            } else {
+                match cli.demuxer.read() {
+                    Ok(pkt) => {
+                        if cli.verbose {
+                            eprintln!("{}", pkt);
+                        }
+                        *count += 1;
+                        let _ = ctx.send_packet(Some(Arc::new(pkt)));
+                    }
+                    _ => {
+                        ctx.flush();
+                    }
+                };
+            }
         }
         Err(CodecStatus::EnoughData) => {
             unreachable!();
@@ -140,35 +145,52 @@ fn main() -> io::Result<()> {
         threads: cli.threads,
         ..Default::default()
     };
+
     let video_info = cli.demuxer.open()?;
-    if !cli.verbose {
+    if cli.verbose {
         eprintln!("{:?}", video_info);
     }
+    cli.muxer.open(&video_info)?;
 
     let mut pkt: Packet;
     for _ in 0..cli.skip {
         pkt = cli.demuxer.read()?;
-        eprintln!("{}", pkt);
+        if cli.verbose {
+            eprintln!("{}", pkt);
+        }
     }
 
     // TODO: use seq header probe to find out pixel type
     let mut ctx: Context<u8> = cfg.new_context();
 
+    let mut progress = common::ProgressInfo::new(
+        Rational {
+            num: video_info.time_base.den,
+            den: video_info.time_base.num,
+        },
+        if cli.limit == 0 {
+            None
+        } else {
+            Some(cli.limit)
+        },
+        false,
+    );
+
     let mut count = 0;
-    while let Ok(pkt) = cli.demuxer.read() {
-        eprintln!("{}", pkt);
-
-        ctx.send_packet(Some(Arc::new(pkt)));
-
-        //let res = rav1d_get_picture(&ctx, )
-        count += 1;
-
-        if cli.limit != 0 && count == cli.limit {
-            break;
+    while let Some(frame_info) = process_frame(&mut cli, &mut ctx, &mut count) {
+        for frame in frame_info {
+            progress.add_frame(frame);
+            if cli.verbose {
+                eprintln!("{} - {}", frame, progress);
+            } else {
+                eprint!("\r{}                    ", progress);
+            };
         }
     }
+    eprint!("\n{}\n", progress.print_summary());
 
     cli.muxer.close();
+    cli.demuxer.close();
 
     Ok(())
 }

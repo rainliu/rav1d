@@ -645,7 +645,7 @@ pub enum PartitionType {
     PARTITION_VERT_B, // VERT split and the right partition is split again
     PARTITION_HORZ_4, // 4:1 horizontal partition
     PARTITION_VERT_4, // 4:1 vertical partition
-    PARTITION_INVALID
+    PARTITION_INVALID,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Ord, Eq)]
@@ -1251,7 +1251,7 @@ pub enum PredictionMode {
     NEAR_NEWMV,
     NEW_NEARMV,
     GLOBAL_GLOBALMV,
-    NEW_NEWMV
+    NEW_NEWMV,
 }
 
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
@@ -1275,10 +1275,8 @@ pub enum TxSet {
     // for 16x16 only
     TX_SET_ALL16_16X16,
     // Discrete Trig transforms w/ flip (9) + Identity (1) + 1D Hor/Ver (6)
-    TX_SET_ALL16
+    TX_SET_ALL16,
 }
-
-
 
 const SUPERBLOCK_TO_PLANE_SHIFT: usize = MAX_SB_SIZE_LOG2;
 const SUPERBLOCK_TO_BLOCK_SHIFT: usize = MAX_MIB_SIZE_LOG2;
@@ -1290,7 +1288,7 @@ pub const LOCAL_BLOCK_MASK: usize = (1 << SUPERBLOCK_TO_BLOCK_SHIFT) - 1;
 #[derive(Clone, Copy, Debug)]
 pub struct SuperBlockOffset {
     pub x: usize,
-    pub y: usize
+    pub y: usize,
 }
 
 impl SuperBlockOffset {
@@ -1298,7 +1296,7 @@ impl SuperBlockOffset {
     pub fn block_offset(self, block_x: usize, block_y: usize) -> BlockOffset {
         BlockOffset {
             x: (self.x << SUPERBLOCK_TO_BLOCK_SHIFT) + block_x,
-            y: (self.y << SUPERBLOCK_TO_BLOCK_SHIFT) + block_y
+            y: (self.y << SUPERBLOCK_TO_BLOCK_SHIFT) + block_y,
         }
     }
 
@@ -1306,7 +1304,7 @@ impl SuperBlockOffset {
     pub fn plane_offset(self, plane: &PlaneConfig) -> PlaneOffset {
         PlaneOffset {
             x: (self.x as isize) << (SUPERBLOCK_TO_PLANE_SHIFT - plane.xdec),
-            y: (self.y as isize) << (SUPERBLOCK_TO_PLANE_SHIFT - plane.ydec)
+            y: (self.y as isize) << (SUPERBLOCK_TO_PLANE_SHIFT - plane.ydec),
         }
     }
 }
@@ -1316,7 +1314,7 @@ impl SuperBlockOffset {
 #[derive(Clone, Copy, Debug)]
 pub struct BlockOffset {
     pub x: usize,
-    pub y: usize
+    pub y: usize,
 }
 
 impl BlockOffset {
@@ -1324,7 +1322,7 @@ impl BlockOffset {
     pub fn sb_offset(self) -> SuperBlockOffset {
         SuperBlockOffset {
             x: self.x >> SUPERBLOCK_TO_BLOCK_SHIFT,
-            y: self.y >> SUPERBLOCK_TO_BLOCK_SHIFT
+            y: self.y >> SUPERBLOCK_TO_BLOCK_SHIFT,
         }
     }
 
@@ -1357,20 +1355,20 @@ impl BlockOffset {
 
         BlockOffset {
             x: x as usize,
-            y: y as usize
+            y: y as usize,
         }
     }
 }
 
 pub fn av1_get_coded_tx_size(tx_size: TxSize) -> TxSize {
     if tx_size == TX_64X64 || tx_size == TX_64X32 || tx_size == TX_32X64 {
-        return TX_32X32
+        return TX_32X32;
     }
     if tx_size == TX_16X64 {
-        return TX_16X32
+        return TX_16X32;
     }
     if tx_size == TX_64X16 {
-        return TX_32X16
+        return TX_32X16;
     }
 
     tx_size

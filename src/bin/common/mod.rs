@@ -118,9 +118,9 @@ impl ProgressInfo {
             / (duration.as_secs() as f64 + duration.subsec_millis() as f64 / 1000f64)
     }
 
-    pub fn video_fps(&self) -> f64 {
+    /*pub fn video_fps(&self) -> f64 {
         self.frame_rate.num as f64 / self.frame_rate.den as f64
-    }
+    }*/
 
     // Returns the bitrate of the frames so far, in bits/second
     /*pub fn bitrate(&self) -> usize {

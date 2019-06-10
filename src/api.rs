@@ -1,13 +1,12 @@
+use crate::frame::Frame;
 use crate::headers::*;
 use crate::util::Pixel;
-use crate::frame::Frame;
 
-use std::{cmp, fmt, io};
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use std::{cmp, fmt, io};
 
 use num_derive::*;
-
 
 #[derive(Clone, Copy, Debug)]
 pub enum CodecStatus {
@@ -163,7 +162,6 @@ pub struct ContextInner<T: Pixel> {
     keyframes: BTreeSet<u64>,
     /// A storage space for reordered frames.
     packet_data: Vec<u8>,*/
-
     frame_q: BTreeMap<u64, Option<Arc<Frame<T>>>>,
     packet_q: BTreeMap<u64, Option<Arc<Packet>>>,
     pub(crate) config: Config,
@@ -187,10 +185,9 @@ pub struct Context<T: Pixel> {
 }
 
 impl<T: Pixel> Context<T> {
-
     pub fn send_packet<P>(&mut self, pkt: P) -> Result<(), CodecStatus>
-        where
-            P: Into<Option<Arc<Packet>>>,
+    where
+        P: Into<Option<Arc<Packet>>>,
     {
         /*let frame = frame.into();
 
@@ -204,15 +201,11 @@ impl<T: Pixel> Context<T> {
     }
 
     pub fn receive_frame(&mut self) -> Result<Frame<T>, CodecStatus> {
-       /*let inner = &mut self.inner;
+        /*let inner = &mut self.inner;
         let pool = &mut self.pool;
 
         pool.install(|| inner.receive_packet())*/
-        Ok(Frame::new(
-           128,
-            128,
-           ChromaSampling::Cs420,
-        ))
+        Ok(Frame::new(128, 128, ChromaSampling::Cs420))
     }
 
     pub fn flush(&mut self) {

@@ -44,12 +44,21 @@ impl Rect {
 #[derive(Debug, Clone, Copy)]
 pub enum Area {
     /// A well-defined rectangle
-    Rect { x: isize, y: isize, width: usize, height: usize },
+    Rect {
+        x: isize,
+        y: isize,
+        width: usize,
+        height: usize,
+    },
     /// A rectangle starting at offset (x, y) and ending at the bottom-right
     /// corner of the parent
     StartingAt { x: isize, y: isize },
     /// A well-defined rectangle with offset expressed in blocks
-    BlockRect { bo: BlockOffset, width: usize, height: usize },
+    BlockRect {
+        bo: BlockOffset,
+        width: usize,
+        height: usize,
+    },
     /// a rectangle starting at given block offset until the bottom-right corner
     /// of the parent
     BlockStartingAt { bo: BlockOffset },
@@ -65,7 +74,17 @@ impl Area {
         parent_height: usize,
     ) -> Rect {
         match *self {
-            Area::Rect { x, y, width, height } => Rect { x, y, width, height },
+            Area::Rect {
+                x,
+                y,
+                width,
+                height,
+            } => Rect {
+                x,
+                y,
+                width,
+                height,
+            },
             Area::StartingAt { x, y } => Rect {
                 x,
                 y,
@@ -87,7 +106,7 @@ impl Area {
                     width: (parent_width as isize - x) as usize,
                     height: (parent_height as isize - y) as usize,
                 }
-            },
+            }
         }
     }
 }
@@ -332,7 +351,8 @@ impl<'a, T: Pixel> PlaneRegionMut<'a, T> {
         assert!(rect.x >= 0 && rect.x as usize <= self.rect.width);
         assert!(rect.y >= 0 && rect.y as usize <= self.rect.height);
         let data = unsafe {
-            self.data.add(rect.y as usize * self.plane_cfg.stride + rect.x as usize)
+            self.data
+                .add(rect.y as usize * self.plane_cfg.stride + rect.x as usize)
         };
         let absolute_rect = Rect {
             x: self.rect.x + rect.x,
