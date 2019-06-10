@@ -8,7 +8,6 @@ use std::slice;
 
 use crate::common::*;
 use rav1d::frame::*;
-use rav1d::plane::*;
 use rav1d::util::*;
 
 pub struct Y4mMuxer {

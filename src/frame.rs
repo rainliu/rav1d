@@ -5,11 +5,40 @@ use crate::util::*;
 use crate::api::ChromaSampling;
 use crate::context::{MAX_SB_SIZE, SUBPEL_FILTER_SIZE};
 
+use std::fmt;
+
+
 const FRAME_MARGIN: usize = 16 + SUBPEL_FILTER_SIZE;
+
+#[allow(dead_code, non_camel_case_types)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+#[repr(C)]
+pub enum FrameType {
+    KEY,
+    INTER,
+    INTRA_ONLY,
+    SWITCH
+}
+
+impl fmt::Display for FrameType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use self::FrameType::*;
+        match self {
+            KEY => write!(f, "Key frame"),
+            INTER => write!(f, "Inter frame"),
+            INTRA_ONLY => write!(f, "Intra only frame"),
+            SWITCH => write!(f, "Switching frame"),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Frame<T: Pixel> {
     pub planes: [Plane<T>; 3],
+    pub pts: u64,
+    pub frame_type: FrameType,
+    /// PSNR for Y, U, and V planes
+    pub psnr: Option<(f64, f64, f64)>,
 }
 
 impl<T: Pixel> Frame<T> {
@@ -44,7 +73,10 @@ impl<T: Pixel> Frame<T> {
                     chroma_decimation_x, chroma_decimation_y,
                     chroma_padding_x, chroma_padding_y
                 )
-            ]
+            ],
+            pts: 0,
+            frame_type: FrameType::KEY,
+            psnr: None,
         }
     }
 

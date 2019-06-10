@@ -32,10 +32,9 @@ pub struct Packet {
 
 impl fmt::Display for Packet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Frame {} - {} bytes", self.pts, self.data.len())
+        write!(f, "Packet {} - {} bytes", self.pts, self.data.len())
     }
 }
-
 
 #[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]

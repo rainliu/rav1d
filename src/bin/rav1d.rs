@@ -4,7 +4,9 @@ mod muxer;
 
 use clap::{App, AppSettings, Arg};
 use rav1d::api::*;
+
 use std::io;
+use std::sync::Arc;
 
 pub struct CLISettings {
     pub demuxer: Box<dyn demuxer::Demuxer>,
@@ -93,46 +95,38 @@ pub fn parse_cli() -> CLISettings {
 }
 
 fn main() -> io::Result<()> {
-    let mut cli_settings = parse_cli();
-    /*
-    let lib_settings = Rav1dSettings::new();
-    let video_info = cli_settings.demuxer.open()?;
-    if !cli_settings.verbose {
-        eprintln!("rav1d {}", rav1d_version());
+    let mut cli = parse_cli();
+    let cfg = Config {threads: cli.threads, ..Default::default()};
+    let video_info = cli.demuxer.open()?;
+    if !cli.verbose {
         eprintln!("{:?}", video_info);
     }
-    let _total = if cli_settings.limit != 0 && cli_settings.limit < video_info.num_frames {
-        cli_settings.limit
-    } else {
-        video_info.num_frames
-    };
 
-    let mut data: Rav1dData;
-    for _i in 0..cli_settings.skip {
-        data = cli_settings.demuxer.read()?;
-        eprintln!("{:?}", data.m);
+    let mut pkt: Packet;
+    for _ in 0..cli.skip {
+        pkt = cli.demuxer.read()?;
+        eprintln!("{}", pkt);
     }
 
-    let mut ctx = rav1d_open(&lib_settings).unwrap();
+    // TODO: use seq header probe to find out pixel type
+    let mut ctx:Context<u8> = cfg.new_context();
 
     let mut n_out = 0;
-    while let Ok(data) = cli_settings.demuxer.read() {
-        eprintln!("{:?}", data.m);
+    while let Ok(pkt) = cli.demuxer.read() {
+        eprintln!("{}", pkt);
 
-        let res = rav1d_send_data(&mut ctx, &data);
-        if res < 0 {
-            eprintln!("Error decoding frame: {}", res);
-        }
+        ctx.send_packet(Some(Arc::new(pkt)));
+
 
         //let res = rav1d_get_picture(&ctx, )
         n_out += 1;
 
-        if cli_settings.limit != 0 && n_out == cli_settings.limit {
+        if cli.limit != 0 && n_out == cli.limit {
             break;
         }
     }
 
-    cli_settings.muxer.close();
-    */
+    cli.muxer.close();
+
     Ok(())
 }
