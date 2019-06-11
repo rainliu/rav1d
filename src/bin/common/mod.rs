@@ -55,7 +55,7 @@ impl fmt::Display for FrameSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Frame {} - {}x{} - {} bytes{}",
+            "Frame {} - {} - {}x{} {}",
             self.pts,
             self.frame_type,
             self.width,

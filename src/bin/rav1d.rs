@@ -104,7 +104,7 @@ fn process_frame(
     let frame_wrapped = ctx.receive_frame();
     match frame_wrapped {
         Ok(frame) => {
-            cli.muxer.write(&frame);
+            //cli.muxer.write(&frame);
             frame_summaries.push(frame.into());
         }
         Err(CodecStatus::NeedMoreData) => {

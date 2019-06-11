@@ -205,7 +205,7 @@ impl<T: Pixel> Context<T> {
         let pool = &mut self.pool;
 
         pool.install(|| inner.receive_packet())*/
-        Ok(Frame::new(128, 128, ChromaSampling::Cs420))
+        Err(CodecStatus::NeedMoreData)
     }
 
     pub fn flush(&mut self) {
