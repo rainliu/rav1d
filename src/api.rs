@@ -191,6 +191,10 @@ impl<T: Pixel> ContextInner<T> {
         self.packet_q.insert(idx, pkt);
         Ok(())
     }
+
+    pub fn receive_frame(&mut self) -> Result<Frame<T>, CodecStatus> {
+        Err(CodecStatus::NeedMoreData)
+    }
 }
 
 pub struct Context<T: Pixel> {
@@ -217,11 +221,13 @@ impl<T: Pixel> Context<T> {
     }
 
     pub fn receive_frame(&mut self) -> Result<Frame<T>, CodecStatus> {
-        /*let inner = &mut self.inner;
-        let pool = &mut self.pool;
+        let inner = &mut self.inner;
 
-        pool.install(|| inner.receive_packet())*/
-        Err(CodecStatus::NeedMoreData)
+        //TODO: add rayon pool impl
+        //let pool = &mut self.pool;
+        //pool.install(|| inner.receive_packet())
+
+        inner.receive_frame()
     }
 
     pub fn flush(&mut self) {
