@@ -2,9 +2,6 @@ use crate::frame::Frame;
 use crate::headers::*;
 use crate::util::Pixel;
 
-use std::collections::BTreeMap;
-use std::collections::BTreeSet;
-use std::sync::Arc;
 use std::{cmp, fmt, io};
 
 use arg_enum_proc_macro::ArgEnum;
@@ -77,7 +74,6 @@ impl Default for ChromaSamplePosition {
     }
 }
 
-
 #[derive(ArgEnum, Debug, Clone, Copy, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum PixelRange {
@@ -91,7 +87,6 @@ impl Default for PixelRange {
         PixelRange::Unspecified
     }
 }
-
 
 #[derive(ArgEnum, Debug, Clone, Copy, PartialEq, FromPrimitive)]
 #[repr(C)]
@@ -173,7 +168,7 @@ impl Default for TransferCharacteristics {
 pub struct ColorDescription {
     pub color_primaries: ColorPrimaries,
     pub transfer_characteristics: TransferCharacteristics,
-    pub matrix_coefficients: MatrixCoefficients
+    pub matrix_coefficients: MatrixCoefficients,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -253,100 +248,62 @@ impl Config {
             config.speed_settings.rdo_tx_decision = false;
         }*/
 
-        let inner = ContextInner::new(&config);
-
-        Context {
-            inner,
-            config,
-            //pool,
-        }
-    }
-}
-
-pub struct ContextInner<T: Pixel> {
-    count: u64,
-    limit: u64,
-    pub(crate) idx: u64,
-    processed: u64,
-    /// Maps frame *number* to frames
-    frame_q: BTreeMap<u64, Option<Arc<Frame<T>>>>, //    packet_q: VecDeque<Packet>
-    /// Maps frame *idx* to frame data
-    //frame_invariants: BTreeMap<u64, FrameInvariants<T>>,
-    /// A list of keyframe *numbers* in this encode. Needed so that we don't
-    /// need to keep all of the frame_invariants in memory for the whole life of the encode.
-    keyframes: BTreeSet<u64>,
-    /// A storage space for reordered frames.
-    packet: Option<Arc<Packet>>,
-    pub(crate) config: Config,
-}
-
-impl<T: Pixel> ContextInner<T> {
-    pub fn new(c: &Config) -> Self {
-        ContextInner {
-            count: 0,
-            limit: 0,
-            idx: 0,
-            processed: 0,
-            frame_q: BTreeMap::new(),
-            //frame_invariants: BTreeMap::new(),
-            keyframes: BTreeSet::new(),
-            packet: None,
-            config: c.clone(),
-        }
-    }
-
-    pub fn send_packet<P>(&mut self, pkt: P) -> Result<(), CodecStatus>
-        where
-            P: Into<Option<Arc<Packet>>>
-    {
-        let idx = self.count;
-        let pkt = pkt.into();
-        if pkt.is_some() {
-            self.count += 1;
-        }
-        self.packet = pkt;
-        Ok(())
-    }
-
-    pub fn receive_frame(&mut self) -> Result<Frame<T>, CodecStatus> {
-        Err(CodecStatus::NeedMoreData)
+        Context::new(config)
     }
 }
 
 pub struct Context<T: Pixel> {
-    //<T: Pixel>
-    inner: ContextInner<T>,
+    apply_grain: bool,
+    operating_point: isize,
+    operating_point_idc: usize,
+    all_layers: isize,
+    frame_size_limit: usize,
+    drain: bool,
+    frame: Option<Frame<T>>,
+    packet: Option<Packet>,
     config: Config,
     //pool: rayon::ThreadPool,
 }
 
 impl<T: Pixel> Context<T> {
-    pub fn send_packet<P>(&mut self, pkt: P) -> Result<(), CodecStatus>
-    where
-        P: Into<Option<Arc<Packet>>>,
-    {
-        let pkt = pkt.into();
+    pub fn new(config: Config) -> Self {
+        Context {
+            apply_grain: false,
+            operating_point: 0,
+            operating_point_idc: 0,
+            all_layers: 0,
+            frame_size_limit: 0,
+            drain: false,
+            frame: None,
+            packet: None,
+            config: config,
+        }
+    }
 
+    pub fn send_packet(&mut self, pkt: &mut Option<Packet>) -> Result<(), CodecStatus> {
         if pkt.is_none() {
-            self.inner.limit = self.inner.count;
+            return Err(CodecStatus::NeedMoreData);
         }
 
-        self.inner.send_packet(pkt);
+        self.drain = false;
 
+        if self.packet.is_some() {
+            return Err(CodecStatus::EnoughData);
+        }
+
+        self.packet = pkt.take();
         Ok(())
     }
 
     pub fn receive_frame(&mut self) -> Result<Frame<T>, CodecStatus> {
-        let inner = &mut self.inner;
-
-        //TODO: add rayon pool impl
-        //let pool = &mut self.pool;
-        //pool.install(|| inner.receive_packet())
-
-        inner.receive_frame()
+        let frame = self.frame.take();
+        match frame {
+            Some(f) => Ok(f),
+            None => Err(CodecStatus::NeedMoreData),
+        }
     }
 
     pub fn flush(&mut self) {
-        self.send_packet(None).unwrap();
+
     }
 }

@@ -6,7 +6,6 @@ use clap::{App, AppSettings, Arg};
 use rav1d::api::*;
 
 use std::io;
-use std::sync::Arc;
 
 pub struct CLISettings {
     pub demuxer: Box<dyn demuxer::Demuxer>,
@@ -117,7 +116,7 @@ fn process_frame(
                             eprintln!("{}", pkt);
                         }
                         *count += 1;
-                        let _ = ctx.send_packet(Some(Arc::new(pkt)));
+                        let _ = ctx.send_packet(&mut Some(pkt));
                     }
                     _ => {
                         ctx.flush();
