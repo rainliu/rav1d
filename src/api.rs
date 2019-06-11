@@ -149,8 +149,9 @@ impl Config {
 }
 
 pub struct ContextInner<T: Pixel> {
-    /*frame_count: u64,
+    count: u64,
     limit: u64,
+    /*
     pub(crate) idx: u64,
     frames_processed: u64,
     /// Maps frame *number* to frames
@@ -170,10 +171,25 @@ pub struct ContextInner<T: Pixel> {
 impl<T: Pixel> ContextInner<T> {
     pub fn new(c: &Config) -> Self {
         ContextInner {
+            count: 0,
+            limit: 0,
             frame_q: BTreeMap::new(),
             packet_q: BTreeMap::new(),
             config: c.clone(),
         }
+    }
+
+    pub fn send_packet<P>(&mut self, pkt: P) -> Result<(), CodecStatus>
+        where
+            P: Into<Option<Arc<Packet>>>
+    {
+        let idx = self.count;
+        let pkt = pkt.into();
+        if pkt.is_some() {
+            self.count += 1;
+        }
+        self.packet_q.insert(idx, pkt);
+        Ok(())
     }
 }
 
@@ -189,14 +205,14 @@ impl<T: Pixel> Context<T> {
     where
         P: Into<Option<Arc<Packet>>>,
     {
-        /*let frame = frame.into();
+        let pkt = pkt.into();
 
-        if frame.is_none() {
-            self.inner.limit = self.inner.frame_count;
+        if pkt.is_none() {
+            self.inner.limit = self.inner.count;
         }
 
-        self.inner.send_frame(frame)
-        */
+        self.inner.send_packet(pkt);
+
         Ok(())
     }
 
