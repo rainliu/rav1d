@@ -3,9 +3,11 @@ use crate::headers::*;
 use crate::util::Pixel;
 
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::sync::Arc;
 use std::{cmp, fmt, io};
 
+use arg_enum_proc_macro::ArgEnum;
 use num_derive::*;
 
 #[derive(Clone, Copy, Debug)]
@@ -73,6 +75,119 @@ impl Default for ChromaSamplePosition {
     fn default() -> Self {
         ChromaSamplePosition::Unknown
     }
+}
+
+
+#[derive(ArgEnum, Debug, Clone, Copy, PartialEq, FromPrimitive)]
+#[repr(C)]
+pub enum PixelRange {
+    Unspecified = 0,
+    Limited,
+    Full,
+}
+
+impl Default for PixelRange {
+    fn default() -> Self {
+        PixelRange::Unspecified
+    }
+}
+
+
+#[derive(ArgEnum, Debug, Clone, Copy, PartialEq, FromPrimitive)]
+#[repr(C)]
+pub enum MatrixCoefficients {
+    Identity = 0,
+    BT709,
+    Unspecified,
+    BT470M = 4,
+    BT470BG,
+    ST170M,
+    ST240M,
+    YCgCo,
+    BT2020NonConstantLuminance,
+    BT2020ConstantLuminance,
+    ST2085,
+    ChromaticityDerivedNonConstantLuminance,
+    ChromaticityDerivedConstantLuminance,
+    ICtCp,
+}
+
+impl Default for MatrixCoefficients {
+    fn default() -> Self {
+        MatrixCoefficients::Unspecified
+    }
+}
+
+#[derive(ArgEnum, Debug, Clone, Copy, PartialEq, FromPrimitive)]
+#[repr(C)]
+pub enum ColorPrimaries {
+    BT709 = 1,
+    Unspecified,
+    BT470M = 4,
+    BT470BG,
+    ST170M,
+    ST240M,
+    Film,
+    BT2020,
+    ST428,
+    P3DCI,
+    P3Display,
+    Tech3213 = 22,
+}
+
+impl Default for ColorPrimaries {
+    fn default() -> Self {
+        ColorPrimaries::Unspecified
+    }
+}
+
+#[derive(ArgEnum, Debug, Clone, Copy, PartialEq, FromPrimitive)]
+#[repr(C)]
+pub enum TransferCharacteristics {
+    BT1886 = 1,
+    Unspecified,
+    BT470M = 4,
+    BT470BG,
+    ST170M,
+    ST240M,
+    Linear,
+    Logarithmic100,
+    Logarithmic316,
+    XVYCC,
+    BT1361E,
+    SRGB,
+    BT2020Ten,
+    BT2020Twelve,
+    PerceptualQuantizer,
+    ST428,
+    HybridLogGamma,
+}
+
+impl Default for TransferCharacteristics {
+    fn default() -> Self {
+        TransferCharacteristics::Unspecified
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct ColorDescription {
+    pub color_primaries: ColorPrimaries,
+    pub transfer_characteristics: TransferCharacteristics,
+    pub matrix_coefficients: MatrixCoefficients
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct MasteringDisplay {
+    pub primaries: [Point; 3],
+    pub white_point: Point,
+    pub max_luminance: u32,
+    pub min_luminance: u32,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct ContentLight {
+    pub max_content_light_level: u16,
+    pub max_frame_average_light_level: u16,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -151,20 +266,17 @@ impl Config {
 pub struct ContextInner<T: Pixel> {
     count: u64,
     limit: u64,
-    /*
     pub(crate) idx: u64,
-    frames_processed: u64,
+    processed: u64,
     /// Maps frame *number* to frames
     frame_q: BTreeMap<u64, Option<Arc<Frame<T>>>>, //    packet_q: VecDeque<Packet>
     /// Maps frame *idx* to frame data
-    frame_invariants: BTreeMap<u64, FrameInvariants<T>>,
+    //frame_invariants: BTreeMap<u64, FrameInvariants<T>>,
     /// A list of keyframe *numbers* in this encode. Needed so that we don't
     /// need to keep all of the frame_invariants in memory for the whole life of the encode.
     keyframes: BTreeSet<u64>,
     /// A storage space for reordered frames.
-    packet_data: Vec<u8>,*/
-    frame_q: BTreeMap<u64, Option<Arc<Frame<T>>>>,
-    packet_q: BTreeMap<u64, Option<Arc<Packet>>>,
+    packet: Option<Arc<Packet>>,
     pub(crate) config: Config,
 }
 
@@ -173,8 +285,12 @@ impl<T: Pixel> ContextInner<T> {
         ContextInner {
             count: 0,
             limit: 0,
+            idx: 0,
+            processed: 0,
             frame_q: BTreeMap::new(),
-            packet_q: BTreeMap::new(),
+            //frame_invariants: BTreeMap::new(),
+            keyframes: BTreeSet::new(),
+            packet: None,
             config: c.clone(),
         }
     }
@@ -188,7 +304,7 @@ impl<T: Pixel> ContextInner<T> {
         if pkt.is_some() {
             self.count += 1;
         }
-        self.packet_q.insert(idx, pkt);
+        self.packet = pkt;
         Ok(())
     }
 
