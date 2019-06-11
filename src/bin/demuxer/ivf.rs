@@ -46,6 +46,7 @@ impl Demuxer for IvfDemuxer {
 
         Ok(Packet {
             data: pkt.data.to_vec(),
+            offset: 0,
             pts: pkt.pts,
         })
     }

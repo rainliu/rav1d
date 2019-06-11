@@ -1,5 +1,6 @@
 use crate::frame::Frame;
 use crate::headers::*;
+use crate::obu::*;
 use crate::util::Pixel;
 
 use std::{cmp, fmt, io};
@@ -23,6 +24,7 @@ pub enum CodecStatus {
 
 pub struct Packet {
     pub data: Vec<u8>,
+    pub offset: usize,
     pub pts: u64,
 }
 
@@ -260,7 +262,7 @@ pub struct Context<T: Pixel> {
     frame_size_limit: usize,
     drain: bool,
     frame: Option<Frame<T>>,
-    packet: Option<Packet>,
+    pub(crate) packet: Option<Packet>,
     config: Config,
     //pool: rayon::ThreadPool,
 }
@@ -290,20 +292,55 @@ impl<T: Pixel> Context<T> {
         if self.packet.is_some() {
             return Err(CodecStatus::EnoughData);
         }
-
         self.packet = pkt.take();
+
         Ok(())
     }
 
     pub fn receive_frame(&mut self) -> Result<Frame<T>, CodecStatus> {
+        let drain = self.drain;
+        self.drain = true;
+
+        if self.packet.is_none() {
+            return self.drain_frame();
+        }
+
+        let pkt = self.packet.as_ref().unwrap();
+        let (mut offset, size) = (pkt.offset, pkt.data.len());
+
+        while offset < size {
+            let res = self.parse_obus(offset, false);
+            if res < 0 {
+                self.packet.take(); // all packet data are consumed, then release it
+            } else {
+                offset += res as usize;
+                if offset >= size {
+                    self.packet.take();
+                }
+            }
+            if self.frame.is_some() {
+                break;
+            }
+            if res < 0 {
+                return Err(CodecStatus::Failure);
+            }
+        }
+
         let frame = self.frame.take();
         match frame {
             Some(f) => Ok(f),
-            None => Err(CodecStatus::NeedMoreData),
+            None => {
+                if drain {
+                    return self.drain_frame();
+                }
+                Err(CodecStatus::NeedMoreData)
+            }
         }
     }
 
-    pub fn flush(&mut self) {
+    pub fn flush(&mut self) {}
 
+    fn drain_frame(&mut self) -> Result<Frame<T>, CodecStatus> {
+        Err(CodecStatus::NeedMoreData)
     }
 }
