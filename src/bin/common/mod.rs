@@ -35,8 +35,6 @@ pub struct FrameSummary {
     pub height: usize,
     pub pts: u64,
     pub frame_type: FrameType,
-    // PSNR for Y, U, and V planes
-    pub psnr: Option<(f64, f64, f64)>,
 }
 
 impl<T: Pixel> From<Frame<T>> for FrameSummary {
@@ -46,7 +44,6 @@ impl<T: Pixel> From<Frame<T>> for FrameSummary {
             height: frame.planes[0].cfg.height,
             pts: frame.pts,
             frame_type: frame.frame_type,
-            psnr: frame.psnr,
         }
     }
 }
@@ -55,19 +52,11 @@ impl fmt::Display for FrameSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Frame {} - {} - {}x{} {}",
+            "Frame {} - {} - {}x{}",
             self.pts,
             self.frame_type,
             self.width,
             self.height,
-            if let Some(psnr) = self.psnr {
-                format!(
-                    " - PSNR: Y: {:.4}  Cb: {:.4}  Cr: {:.4}",
-                    psnr.0, psnr.1, psnr.2
-                )
-            } else {
-                String::new()
-            }
         )
     }
 }
@@ -167,42 +156,11 @@ impl ProgressInfo {
             self.get_frame_type_count(FrameType::SWITCH),
         );
         format!(
-            "\
-             Key: {:>6}, Inter: {:>6}, Intra_Only: {:>6}, Switch: {:>6} B\
-             {}",
+            "Key: {:>6}, Inter: {:>6}, Intra_Only: {:>6}, Switch: {:>6}",
             key,
             inter,
             ionly,
             switch,
-            if self.show_psnr {
-                let psnr_y = self
-                    .frame_info
-                    .iter()
-                    .map(|fi| fi.psnr.unwrap().0)
-                    .sum::<f64>()
-                    / self.frame_info.len() as f64;
-                let psnr_u = self
-                    .frame_info
-                    .iter()
-                    .map(|fi| fi.psnr.unwrap().1)
-                    .sum::<f64>()
-                    / self.frame_info.len() as f64;
-                let psnr_v = self
-                    .frame_info
-                    .iter()
-                    .map(|fi| fi.psnr.unwrap().2)
-                    .sum::<f64>()
-                    / self.frame_info.len() as f64;
-                format!(
-                    "\nMean PSNR: Y: {:.4}  Cb: {:.4}  Cr: {:.4}  Avg: {:.4}",
-                    psnr_y,
-                    psnr_u,
-                    psnr_v,
-                    (psnr_y + psnr_u + psnr_v) / 3.0
-                )
-            } else {
-                String::new()
-            }
         )
     }
 }
