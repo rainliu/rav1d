@@ -326,6 +326,10 @@ impl<T: Pixel> Context<T> {
             }
         }
 
+        if self.packet.is_some() {
+            self.packet.as_mut().unwrap().offset = offset;
+        }
+
         let frame = self.frame.take();
         match frame {
             Some(f) => Ok(f),

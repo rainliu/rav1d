@@ -172,7 +172,6 @@ fn main() -> io::Result<()> {
         } else {
             Some(cli.limit)
         },
-        false,
     );
 
     let mut count = 0;

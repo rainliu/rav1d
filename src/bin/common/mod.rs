@@ -71,24 +71,15 @@ pub struct ProgressInfo {
     time_started: Instant,
     // List of frames encoded so far
     frame_info: Vec<FrameSummary>,
-    // Video size so far in bytes.
-    //
-    // This value will be updated in the CLI very frequently, so we cache the previous value
-    // to reduce the overall complexity.
-    // encoded_size: usize,
-    // Whether to display PSNR statistics during and at end of encode
-    show_psnr: bool,
 }
 
 impl ProgressInfo {
-    pub fn new(frame_rate: Rational, total_frames: Option<usize>, show_psnr: bool) -> Self {
+    pub fn new(frame_rate: Rational, total_frames: Option<usize>) -> Self {
         Self {
             frame_rate,
             total_frames,
             time_started: Instant::now(),
             frame_info: Vec::with_capacity(total_frames.unwrap_or_default()),
-            //encoded_size: 0,
-            show_psnr,
         }
     }
 
