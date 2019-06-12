@@ -100,40 +100,43 @@ fn process_frame(
     count: &mut usize,
 ) -> Option<Vec<common::FrameSummary>> {
     let mut frame_summaries = Vec::new();
-    let frame_wrapped = ctx.receive_frame();
-    match frame_wrapped {
-        Ok(frame) => {
-            //cli.muxer.write(&frame);
-            frame_summaries.push(frame.into());
-        }
-        Err(CodecStatus::NeedMoreData) => {
-            if cli.limit != 0 && *count == cli.limit {
-                ctx.flush();
-            } else {
-                match cli.demuxer.read() {
-                    Ok(pkt) => {
-                        if cli.verbose {
-                            eprintln!("{}", pkt);
-                        }
-                        *count += 1;
-                        let _ = ctx.send_packet(&mut Some(pkt));
-                    }
-                    _ => {
-                        ctx.flush();
-                    }
-                };
+
+    if cli.limit != 0 && *count == cli.limit {
+        ctx.flush();
+    } else {
+        match cli.demuxer.read() {
+            Ok(pkt) => {
+                if cli.verbose {
+                    eprintln!("{}", pkt);
+                }
+                *count += 1;
+                let _ = ctx.send_packet(&mut Some(pkt));
             }
+            _ => {
+                ctx.flush();
+            }
+        };
+    }
+
+    loop {
+        let frame_wrapped = ctx.receive_frame();
+        match frame_wrapped {
+            Ok(frame) => {
+                //cli.muxer.write(&frame);
+                frame_summaries.push(frame.into());
+            }
+            Err(CodecStatus::NeedMoreData) => {
+                break;
+            }
+            Err(CodecStatus::EnoughData) => {}
+            Err(CodecStatus::LimitReached) => {
+                return None;
+            }
+            Err(CodecStatus::Failure) => {
+                panic!("Failed to decode video");
+            }
+            //Err(CodecStatus::Decoded) => {}
         }
-        Err(CodecStatus::EnoughData) => {
-            unreachable!();
-        }
-        Err(CodecStatus::LimitReached) => {
-            return None;
-        }
-        Err(CodecStatus::Failure) => {
-            panic!("Failed to decode video");
-        }
-        Err(CodecStatus::Decoded) => {}
     }
     Some(frame_summaries)
 }
@@ -181,7 +184,7 @@ fn main() -> io::Result<()> {
             if cli.verbose {
                 eprintln!("{} - {}", frame, progress);
             } else {
-                eprint!("\r{}                    ", progress);
+                eprint!("\r{}     ", progress);
             };
         }
     }

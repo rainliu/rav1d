@@ -17,7 +17,7 @@ pub enum CodecStatus {
     /// The codec already produced the number of frames/packets requested
     LimitReached,
     /// A Frame had been decoded but not emitted yet
-    Decoded,
+    //Decoded,
     /// Generic fatal error
     Failure,
 }
@@ -259,9 +259,9 @@ pub struct Context<T: Pixel> {
     operating_point: isize,
     operating_point_idc: usize,
     all_layers: isize,
-    frame_size_limit: usize,
+    //frame_size_limit: usize,
     drain: bool,
-    frame: Option<Frame<T>>,
+    pub(crate) frame: Option<Frame<T>>,
     pub(crate) packet: Option<Packet>,
     config: Config,
     //pool: rayon::ThreadPool,
@@ -274,7 +274,7 @@ impl<T: Pixel> Context<T> {
             operating_point: 0,
             operating_point_idc: 0,
             all_layers: 0,
-            frame_size_limit: 0,
+            //frame_size_limit: 0,
             drain: false,
             frame: None,
             packet: None,
@@ -292,17 +292,19 @@ impl<T: Pixel> Context<T> {
         if self.packet.is_some() {
             return Err(CodecStatus::EnoughData);
         }
+
         self.packet = pkt.take();
 
         Ok(())
     }
 
     pub fn receive_frame(&mut self) -> Result<Frame<T>, CodecStatus> {
-        let drain = self.drain;
-        self.drain = true;
+        if self.drain {
+            return self.drain_frame();
+        }
 
         if self.packet.is_none() {
-            return self.drain_frame();
+            return Err(CodecStatus::NeedMoreData);
         }
 
         let pkt = self.packet.as_ref().unwrap();
@@ -333,18 +335,15 @@ impl<T: Pixel> Context<T> {
         let frame = self.frame.take();
         match frame {
             Some(f) => Ok(f),
-            None => {
-                if drain {
-                    return self.drain_frame();
-                }
-                Err(CodecStatus::NeedMoreData)
-            }
+            None => Err(CodecStatus::NeedMoreData),
         }
     }
 
-    pub fn flush(&mut self) {}
+    pub fn flush(&mut self) {
+        self.drain = true;
+    }
 
     fn drain_frame(&mut self) -> Result<Frame<T>, CodecStatus> {
-        Err(CodecStatus::NeedMoreData)
+        Err(CodecStatus::LimitReached)
     }
 }

@@ -1,5 +1,6 @@
 use crate::api::*;
 use crate::util::Pixel;
+use crate::frame::Frame;
 
 use bitstream_io::{BitReader, LittleEndian};
 use std::io;
@@ -10,6 +11,7 @@ impl<T: Pixel> Context<T> {
         let pkt = self.packet.as_ref().unwrap();
         let r = BufReader::new(&pkt.data[pkt.offset..]);
         let mut br = BitReader::endian(r, LittleEndian);
-        0
+        self.frame = Some(Frame::new(352, 288, ChromaSampling::Cs420));
+        pkt.data.len() as isize
     }
 }
