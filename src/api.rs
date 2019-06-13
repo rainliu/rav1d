@@ -255,16 +255,16 @@ impl Config {
 }
 
 pub struct Context<T: Pixel> {
-    apply_grain: bool,
-    operating_point: isize,
-    operating_point_idc: usize,
-    all_layers: isize,
+    pub(crate) apply_grain: bool,
+    pub(crate) operating_point: isize,
+    pub(crate) operating_point_idc: usize,
+    pub(crate) all_layers: isize,
     //frame_size_limit: usize,
-    drain: bool,
+    pub(crate) drain: bool,
     pub(crate) frame: Option<Frame<T>>,
     pub(crate) packet: Option<Packet>,
     config: Config,
-    //pool: rayon::ThreadPool,
+    //pub(crate) pool: rayon::ThreadPool,
 }
 
 impl<T: Pixel> Context<T> {
@@ -312,18 +312,18 @@ impl<T: Pixel> Context<T> {
 
         while offset < size {
             let res = self.parse_obus(offset, false);
-            if res < 0 {
+            let err = res.is_err();
+            if err {
                 self.packet.take(); // all packet data are consumed, then release it
             } else {
-                offset += res as usize;
+                offset += res.unwrap();
                 if offset >= size {
                     self.packet.take();
                 }
             }
             if self.frame.is_some() {
                 break;
-            }
-            if res < 0 {
+            } else if err {
                 return Err(CodecStatus::Failure);
             }
         }
