@@ -1,4 +1,26 @@
 use std::io;
+use std::mem;
+
+#[inline(always)]
+const fn num_bits<T>() -> usize {
+    mem::size_of::<T>() * 8
+}
+
+#[inline(always)]
+fn ulog2(v: u32) -> u32 {
+    num_bits::<u32>() as u32 - 1 - v.leading_zeros()
+}
+
+#[inline(always)]
+fn inv_recenter(r: u32, v: u32) -> u32 {
+    if v > (r << 1) {
+        v
+    } else if (v & 1) == 0 {
+        (v >> 1) + r
+    } else {
+        r - ((v + 1) >> 1)
+    }
+}
 
 pub struct GetBits<'a> {
     error: bool,
@@ -43,6 +65,17 @@ impl<'a> GetBits<'a> {
         self.state |= state << (64 - self.bits_left as u64);
     }
 
+    pub fn check_error(&self) -> io::Result<()> {
+        if self.error {
+            Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Error parsing frame header",
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn get_bits(&mut self, n: u32) -> u32 {
         debug_assert!(n <= 32 /* can go up to 57 if we change return type */);
         debug_assert!(n != 0 /* can't shift state by 64 */);
@@ -85,14 +118,85 @@ impl<'a> GetBits<'a> {
         return val;
     }
 
-    pub fn check_error(&self) -> io::Result<()> {
-        if self.error {
-            Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "Error parsing frame header",
-            ))
+    pub fn get_uniform(&mut self, max: u32) -> u32 {
+        // Output in range [0..max-1]
+        // max must be > 1, or else nothing is read from the bitstream
+        debug_assert!(max > 1);
+        let l = ulog2(max) + 1;
+        debug_assert!(l > 1);
+        let m = (1 << l) - max;
+        let v = self.get_bits(l as u32 - 1);
+        if v < m {
+            v
         } else {
-            Ok(())
+            (v << 1) - m + self.get_bits(1)
         }
+    }
+
+    pub fn get_vlc(&mut self) -> u32 {
+        let mut n_bits = 0;
+        while self.get_bits(1) == 0 {
+            n_bits += 1;
+            if n_bits == 32 {
+                return 0xFFFFFFFF;
+            }
+        }
+
+        if n_bits != 0 {
+            ((1 << n_bits as u32) - 1) + self.get_bits(n_bits as u32)
+        } else {
+            0
+        }
+    }
+
+    fn get_bits_subexp_u(&mut self, r: u32, n: u32) -> u32 {
+        let mut v = 0;
+        let mut i = 0;
+
+        loop {
+            let b = if i != 0 { 3 + i - 1 } else { 3 };
+
+            if n < v + 3 * (1 << b) {
+                v += self.get_uniform(n - v + 1);
+                break;
+            }
+
+            if self.get_bits(1) == 0 {
+                v += self.get_bits(b);
+                break;
+            }
+
+            v += 1 << b;
+            i += 1;
+        }
+
+        if r * 2 <= n {
+            inv_recenter(r, v)
+        } else {
+            n - inv_recenter(n - r, v)
+        }
+    }
+
+    pub fn get_bits_subexp(&mut self, r: i32, n: u32) -> i32 {
+        self.get_bits_subexp_u((r + (1 << n) as i32) as u32, 2 << n) as i32 - (1 << n) as i32
+    }
+
+    pub fn bytealign_get_bits(&mut self) {
+        // bits_left is never more than 7, because it is only incremented
+        // by refill(), called by dav1d_get_bits and that never reads more
+        // than 7 bits more than it needs.
+        //
+        // If this wasn't true, we would need to work out how many bits to
+        // discard (bits_left % 8), subtract that from bits_left and then
+        // shift state right by that amount.
+        debug_assert!(self.bits_left <= 7);
+
+        self.bits_left = 0;
+        self.state = 0;
+    }
+
+    // Return the current bit position relative to the start of the buffer.
+    pub fn get_bits_pos(&self) -> u32 {
+        self.ptr as u32 * 8 - self.bits_left
     }
 }
