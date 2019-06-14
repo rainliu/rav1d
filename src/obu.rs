@@ -6,10 +6,13 @@ use crate::getbits::*;
 
 use std::io;
 
+use num_traits::FromPrimitive;
+
 impl<T: Pixel> Context<T> {
     pub fn parse_obus(&mut self, offset: usize, global: bool) -> io::Result<usize> {
         let pkt = self.packet.as_ref().unwrap();
-        let mut gb = GetBits::new(&pkt.data[pkt.offset..]);
+        let data = &pkt.data[pkt.offset..];
+        let mut gb = GetBits::new(data);
 
         // obu header
         gb.get_bits(1); // obu_forbidden_bit
@@ -27,22 +30,59 @@ impl<T: Pixel> Context<T> {
 
         // obu length field
         let len =  if has_length_field {
-            gb.get_uleb128()
+            gb.get_uleb128() as usize
         }else {
-            let l = pkt.data.len() as isize - pkt.offset as isize - 1 - has_extension as isize;
-            if l <= 0 {
-                0
-            } else {
-                l as u32
-            }
+            (data.len() as isize - 1 - has_extension as isize) as usize
         };
         gb.check_error()?;
+
+        let init_bit_pos = gb.get_bits_pos() as usize;
+        let init_byte_pos = init_bit_pos >> 3;
+        let pkt_bytelen = init_byte_pos + len;
+
+        // We must have read a whole number of bytes at this point (1 byte
+        // for the header and whole bytes at a time when reading the
+        // leb128 length field).
+        debug_assert!((init_bit_pos & 7) == 0);
+
+        // We also know that we haven't tried to read more than in->sz
+        // bytes yet (otherwise the error flag would have been set by the
+        // code in getbits.c)
+        debug_assert!(data.len() >= init_byte_pos);
+
+        // Make sure that there are enough bits left in the buffer for the
+        // rest of the OBU.
+        if len > data.len() - init_byte_pos {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Error parsing frame header",
+            ));
+        }
 
         if obu_type != ObuType::OBU_SEQ_HDR as u32
             && obu_type != ObuType::OBU_TD as u32
             && has_extension
             && self.operating_point_idc != 0
-        {}
+        {
+            let in_temporal_layer = (self.operating_point_idc >> temporal_id) & 1;
+            let in_spatial_layer = (self.operating_point_idc >> (spatial_id + 8)) & 1;
+            if in_temporal_layer == 0 || in_spatial_layer == 0 {
+                return Ok(len + init_byte_pos);
+            }
+        }
+
+        match FromPrimitive::from_u32(obu_type) {
+            Some(ObuType::OBU_SEQ_HDR) => {
+
+            }
+            Some(ObuType::OBU_REDUNDANT_FRAME_HDR) => {
+
+            }
+            _ => {
+                // print a warning but don't fail for unknown types
+                // log(c, "Unknown OBU type %d of size %u\n", type, len);
+            }
+        }
 
         self.frame = Some(Frame::new(352, 288, ChromaSampling::Cs420));
         Ok(pkt.data.len())

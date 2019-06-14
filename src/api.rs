@@ -256,9 +256,9 @@ impl Config {
 
 pub struct Context<T: Pixel> {
     pub(crate) apply_grain: bool,
-    pub(crate) operating_point: isize,
-    pub(crate) operating_point_idc: usize,
-    pub(crate) all_layers: isize,
+    pub(crate) operating_point: i32,
+    pub(crate) operating_point_idc: u32,
+    pub(crate) all_layers: i32,
     //frame_size_limit: usize,
     pub(crate) drain: bool,
     pub(crate) frame: Option<Frame<T>>,
