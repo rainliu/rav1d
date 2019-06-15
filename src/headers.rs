@@ -108,9 +108,7 @@ pub enum WarpedMotionParamsUnion {
 
 impl Default for WarpedMotionParamsUnion {
     fn default() -> Self {
-        WarpedMotionParamsUnion::Abgd(WarpedMotionParamsStruct {
-            ..Default::default()
-        })
+        WarpedMotionParamsUnion::Abgd(WarpedMotionParamsStruct::default())
     }
 }
 
@@ -372,14 +370,6 @@ pub struct SequenceHeader {
         [SequenceHeaderOperatingParameterInfo; MAX_OPERATING_POINTS],
 }
 
-impl SequenceHeader {
-    pub fn new() -> Self {
-        SequenceHeader {
-            ..Default::default()
-        }
-    }
-}
-
 impl PartialEq for SequenceHeader {
     fn eq(&self, other: &Self) -> bool {
         self.profile == other.profile
@@ -447,29 +437,38 @@ impl PartialEq for SequenceHeader {
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct SegmentationData {
-    pub(crate) delta_q: isize,
-    pub(crate) delta_lf_y_v: isize,
-    pub(crate) delta_lf_y_h: isize,
-    pub(crate) delta_lf_u: isize,
-    pub(crate) delta_lf_v: isize,
-    pub(crate) ref_frame: isize,
-    pub(crate) skip: isize,
-    pub(crate) globalmv: isize,
+    pub(crate) delta_q: i32,
+    pub(crate) delta_lf_y_v: i32,
+    pub(crate) delta_lf_y_h: i32,
+    pub(crate) delta_lf_u: i32,
+    pub(crate) delta_lf_v: i32,
+    pub(crate) ref_frame: i32,
+    pub(crate) skip: bool,
+    pub(crate) globalmv: bool,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct SegmentationDataSet {
     pub(crate) d: [SegmentationData; MAX_SEGMENTS],
-    pub(crate) preskip: isize,
-    pub(crate) last_active_segid: isize,
+    pub(crate) preskip: bool,
+    pub(crate) last_active_segid: i32,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Default)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(C)]
 pub struct LoopfilterModeRefDeltas {
-    pub(crate) mode_delta: [isize; 2],
-    pub(crate) ref_delta: [isize; TOTAL_REFS_PER_FRAME],
+    pub(crate) mode_delta: [i32; 2],
+    pub(crate) ref_delta: [i32; TOTAL_REFS_PER_FRAME],
+}
+
+impl Default for LoopfilterModeRefDeltas{
+    fn default() -> Self {
+        LoopfilterModeRefDeltas {
+            mode_delta: [0; 2],
+            ref_delta: [1, 0, 0, 0, -1, 0, -1, -1],
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
@@ -617,43 +616,43 @@ impl fmt::Debug for Tiling {
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Quant {
-    pub(crate) yac: isize,
-    pub(crate) ydc_delta: isize,
-    pub(crate) udc_delta: isize,
-    pub(crate) uac_delta: isize,
-    pub(crate) vdc_delta: isize,
-    pub(crate) vac_delta: isize,
-    pub(crate) qm: isize,
-    pub(crate) qm_y: isize,
-    pub(crate) qm_u: isize,
-    pub(crate) qm_v: isize,
+    pub(crate) yac: i32,
+    pub(crate) ydc_delta: i32,
+    pub(crate) udc_delta: i32,
+    pub(crate) uac_delta: i32,
+    pub(crate) vdc_delta: i32,
+    pub(crate) vac_delta: i32,
+    pub(crate) qm: bool,
+    pub(crate) qm_y: i32,
+    pub(crate) qm_u: i32,
+    pub(crate) qm_v: i32,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Segmentation {
-    pub(crate) enabled: isize,
-    pub(crate) update_map: isize,
-    pub(crate) temporal: isize,
-    pub(crate) update_data: isize,
+    pub(crate) enabled: bool,
+    pub(crate) update_map: bool,
+    pub(crate) temporal: bool,
+    pub(crate) update_data: bool,
     pub(crate) seg_data: SegmentationDataSet,
-    pub(crate) lossless: [isize; MAX_SEGMENTS],
-    pub(crate) qidx: [isize; MAX_SEGMENTS],
+    pub(crate) lossless: [bool; MAX_SEGMENTS],
+    pub(crate) qidx: [i32; MAX_SEGMENTS],
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Q {
-    pub(crate) present: isize,
-    pub(crate) res_log2: isize,
+    pub(crate) present: bool,
+    pub(crate) res_log2: i32,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct LF {
-    pub(crate) present: isize,
-    pub(crate) res_log2: isize,
-    pub(crate) multi: isize,
+    pub(crate) present: bool,
+    pub(crate) res_log2: i32,
+    pub(crate) multi: bool,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
@@ -666,13 +665,13 @@ pub struct Delta {
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct LoopFilter {
-    pub(crate) level_y: [isize; 2],
-    pub(crate) level_u: isize,
-    pub(crate) level_v: isize,
-    pub(crate) mode_ref_delta_enabled: isize,
-    pub(crate) mode_ref_delta_update: isize,
+    pub(crate) level_y: [i32; 2],
+    pub(crate) level_u: i32,
+    pub(crate) level_v: i32,
+    pub(crate) mode_ref_delta_enabled: bool,
+    pub(crate) mode_ref_delta_update: bool,
     pub(crate) mode_ref_deltas: LoopfilterModeRefDeltas,
-    pub(crate) sharpness: isize,
+    pub(crate) sharpness: i32,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
@@ -732,7 +731,7 @@ pub struct FrameHeader {
     pub(crate) quant: Quant,
     pub(crate) segmentation: Segmentation,
     pub(crate) delta: Delta,
-    pub(crate) all_lossless: isize,
+    pub(crate) all_lossless: bool,
     pub(crate) loopfilter: LoopFilter,
     pub(crate) cdef: CDEF,
     pub(crate) restoration: Restoration,
@@ -744,12 +743,4 @@ pub struct FrameHeader {
     pub(crate) warp_motion: isize,
     pub(crate) reduced_txtp_set: isize,
     pub(crate) gmv: [WarpedMotionParams; REFS_PER_FRAME],
-}
-
-impl FrameHeader {
-    pub fn new() -> Self {
-        FrameHeader {
-            ..Default::default()
-        }
-    }
 }

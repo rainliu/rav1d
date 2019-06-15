@@ -28,9 +28,7 @@ impl Y4mMuxer {
             y_len: 0,
             u_len: 0,
             v_len: 0,
-            y4m_details: VideoDetails {
-                ..Default::default()
-            },
+            y4m_details: VideoDetails::default(),
         };
         Box::new(y4m)
     }
