@@ -11,7 +11,6 @@ pub struct VideoDetails {
     pub height: usize,
     pub bit_depth: usize,
     pub chroma_sampling: ChromaSampling,
-    pub chroma_sample_position: ChromaSamplePosition,
     pub time_base: Rational,
 }
 
@@ -22,7 +21,6 @@ impl Default for VideoDetails {
             height: 480,
             bit_depth: 8,
             chroma_sampling: ChromaSampling::Cs420,
-            chroma_sample_position: ChromaSamplePosition::Unknown,
             time_base: Rational { num: 30, den: 1 },
         }
     }

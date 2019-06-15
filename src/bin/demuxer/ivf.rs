@@ -33,7 +33,6 @@ impl Demuxer for IvfDemuxer {
             height: hdr.h as usize,
             bit_depth: 8,
             chroma_sampling: ChromaSampling::Cs420,
-            chroma_sample_position: ChromaSamplePosition::Unknown,
             time_base: Rational {
                 num: hdr.timebase_num as u64,
                 den: hdr.timebase_den as u64,

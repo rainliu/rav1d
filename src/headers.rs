@@ -93,10 +93,10 @@ impl Default for WarpedMotionType {
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 #[repr(C)]
 pub struct WarpedMotionParamsStruct {
-    alpha: i16,
-    beta: i16,
-    gamma: i16,
-    delta: i16,
+    pub(crate) alpha: i16,
+    pub(crate) beta: i16,
+    pub(crate) gamma: i16,
+    pub(crate) delta: i16,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -117,9 +117,9 @@ impl Default for WarpedMotionParamsUnion {
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 #[repr(C)]
 pub struct WarpedMotionParams {
-    t: WarpedMotionType,
-    matrix: [i32; 6],
-    u: WarpedMotionParamsUnion,
+    pub(crate) t: WarpedMotionType,
+    pub(crate) matrix: [i32; 6],
+    pub(crate) u: WarpedMotionParamsUnion,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
@@ -232,9 +232,9 @@ impl Default for MatrixCoefficients {
 #[repr(C)]
 pub enum ChromaSamplePosition {
     CHR_UNKNOWN = 0,
-    CHR_VERTICAL = 1, // Horizontally co-located with luma(0, 0)
-    // sample, between two vertical samples
-    CHR_COLOCATED = 2, // Co-located with luma(0, 0) sample
+    CHR_VERTICAL = 1,
+    CHR_COLOCATED = 2,
+    CHR_RESERVED = 3,
 }
 
 impl Default for ChromaSamplePosition {
@@ -246,41 +246,41 @@ impl Default for ChromaSamplePosition {
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct ContentLightLevel {
-    max_content_light_level: isize,
-    max_frame_average_light_level: isize,
+    pub(crate) max_content_light_level: isize,
+    pub(crate) max_frame_average_light_level: isize,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct MasteringDisplay {
     // 0.16 fixed point
-    primaries: [[u16; 3]; 2], //TODO: confirm [3][2]?
+    pub(crate) primaries: [[u16; 3]; 2], //TODO: confirm [3][2]?
     // 0.16 fixed point
-    white_point: [u16; 2],
+    pub(crate) white_point: [u16; 2],
     // 24.8 fixed point
-    max_luminance: u32,
+    pub(crate) max_luminance: u32,
     // 18.14 fixed point
-    min_luminance: u32,
+    pub(crate) min_luminance: u32,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct SequenceHeaderOperatingPoint {
-    major_level: isize,
-    minor_level: isize,
-    initial_display_delay: isize,
-    idc: isize,
-    tier: isize,
-    decoder_model_param_present: isize,
-    display_model_param_present: isize,
+    pub(crate) major_level: u32,
+    pub(crate) minor_level: u32,
+    pub(crate) initial_display_delay: u32,
+    pub(crate) idc: u32,
+    pub(crate) tier: u32,
+    pub(crate) decoder_model_param_present: bool,
+    pub(crate) display_model_param_present: bool,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct SequenceHeaderOperatingParameterInfo {
-    decoder_buffer_delay: isize,
-    encoder_buffer_delay: isize,
-    low_delay_mode: isize,
+    pub(crate) decoder_buffer_delay: u32,
+    pub(crate) encoder_buffer_delay: u32,
+    pub(crate) low_delay_mode: bool,
 }
 
 #[derive(Copy, Clone, Debug, Default)]
@@ -291,7 +291,7 @@ pub struct SequenceHeader {
      * 1 for 8-10 bits/component 4:4:4; 2 for 4:2:2 at any bits/component,
      * or 12 bits/component at any chroma subsampling.
      */
-    pub(crate) profile: u32,
+    pub(crate) profile: u8,
     /**
      * Maximum dimensions for this stream. In non-scalable streams, these
      * are often the actual dimensions of the stream, although that is not
@@ -316,51 +316,51 @@ pub struct SequenceHeader {
      * Pixel data uses JPEG pixel range ([0,255] for 8bits) instead of
      * MPEG pixel range ([16,235] for 8bits luma, [16,240] for 8bits chroma).
      */
-    pub(crate) color_range: u32,
+    pub(crate) color_range: bool,
 
     pub(crate) num_operating_points: usize,
     pub(crate) operating_points: [SequenceHeaderOperatingPoint; MAX_OPERATING_POINTS],
 
     pub(crate) still_picture: bool,
     pub(crate) reduced_still_picture_header: bool,
-    pub(crate) timing_info_present: isize,
-    pub(crate) num_units_in_tick: isize,
-    pub(crate) time_scale: isize,
-    pub(crate) equal_picture_interval: isize,
-    pub(crate) num_ticks_per_picture: usize,
-    pub(crate) decoder_model_info_present: isize,
-    pub(crate) encoder_decoder_buffer_delay_length: isize,
-    pub(crate) num_units_in_decoding_tick: isize,
-    pub(crate) buffer_removal_delay_length: isize,
-    pub(crate) frame_presentation_delay_length: isize,
-    pub(crate) display_model_info_present: isize,
-    pub(crate) width_n_bits: isize,
-    pub(crate) height_n_bits: isize,
-    pub(crate) frame_id_numbers_present: isize,
-    pub(crate) delta_frame_id_n_bits: isize,
-    pub(crate) frame_id_n_bits: isize,
-    pub(crate) sb128: isize,
-    pub(crate) filter_intra: isize,
-    pub(crate) intra_edge_filter: isize,
-    pub(crate) inter_intra: isize,
-    pub(crate) masked_compound: isize,
-    pub(crate) warped_motion: isize,
-    pub(crate) dual_filter: isize,
-    pub(crate) order_hint: isize,
-    pub(crate) jnt_comp: isize,
-    pub(crate) ref_frame_mvs: isize,
+    pub(crate) timing_info_present: bool,
+    pub(crate) num_units_in_tick: u32,
+    pub(crate) time_scale: u32,
+    pub(crate) equal_picture_interval: bool,
+    pub(crate) num_ticks_per_picture: u32,
+    pub(crate) decoder_model_info_present: bool,
+    pub(crate) encoder_decoder_buffer_delay_length: u32,
+    pub(crate) num_units_in_decoding_tick: u32,
+    pub(crate) buffer_removal_delay_length: u32,
+    pub(crate) frame_presentation_delay_length: u32,
+    pub(crate) display_model_info_present: bool,
+    pub(crate) width_n_bits: u32,
+    pub(crate) height_n_bits: u32,
+    pub(crate) frame_id_numbers_present: bool,
+    pub(crate) delta_frame_id_n_bits: u32,
+    pub(crate) frame_id_n_bits: u32,
+    pub(crate) sb128: bool,
+    pub(crate) filter_intra: bool,
+    pub(crate) intra_edge_filter: bool,
+    pub(crate) inter_intra: bool,
+    pub(crate) masked_compound: bool,
+    pub(crate) warped_motion: bool,
+    pub(crate) dual_filter: bool,
+    pub(crate) order_hint: bool,
+    pub(crate) jnt_comp: bool,
+    pub(crate) ref_frame_mvs: bool,
     pub(crate) screen_content_tools: AdaptiveBoolean,
     pub(crate) force_integer_mv: AdaptiveBoolean,
-    pub(crate) order_hint_n_bits: isize,
-    pub(crate) super_res: isize,
-    pub(crate) cdef: isize,
-    pub(crate) restoration: isize,
-    pub(crate) ss_hor: isize,
-    pub(crate) ss_ver: isize,
-    pub(crate) monochrome: isize,
-    pub(crate) color_description_present: isize,
-    pub(crate) separate_uv_delta_q: isize,
-    pub(crate) film_grain_present: isize,
+    pub(crate) order_hint_n_bits: u32,
+    pub(crate) super_res: bool,
+    pub(crate) cdef: bool,
+    pub(crate) restoration: bool,
+    pub(crate) ss_hor: u32,
+    pub(crate) ss_ver: u32,
+    pub(crate) monochrome: bool,
+    pub(crate) color_description_present: bool,
+    pub(crate) separate_uv_delta_q: bool,
+    pub(crate) film_grain_present: bool,
 
     // SequenceHeaders of the same sequence are required to be
     // bit-identical until this offset. See 7.5 "Ordering of OBUs":
@@ -368,7 +368,8 @@ pub struct SequenceHeader {
     //   sequence_header_obu must be bit-identical each time the
     //   sequence header appears except for the contents of
     //   operating_parameters_info.
-    pub(crate) operating_parameter_info: [SequenceHeaderOperatingParameterInfo; MAX_OPERATING_POINTS],
+    pub(crate) operating_parameter_info:
+        [SequenceHeaderOperatingParameterInfo; MAX_OPERATING_POINTS],
 }
 
 impl SequenceHeader {
@@ -446,90 +447,90 @@ impl PartialEq for SequenceHeader {
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct SegmentationData {
-    delta_q: isize,
-    delta_lf_y_v: isize,
-    delta_lf_y_h: isize,
-    delta_lf_u: isize,
-    delta_lf_v: isize,
-    ref_frame: isize,
-    skip: isize,
-    globalmv: isize,
+    pub(crate) delta_q: isize,
+    pub(crate) delta_lf_y_v: isize,
+    pub(crate) delta_lf_y_h: isize,
+    pub(crate) delta_lf_u: isize,
+    pub(crate) delta_lf_v: isize,
+    pub(crate) ref_frame: isize,
+    pub(crate) skip: isize,
+    pub(crate) globalmv: isize,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct SegmentationDataSet {
-    d: [SegmentationData; MAX_SEGMENTS],
-    preskip: isize,
-    last_active_segid: isize,
+    pub(crate) d: [SegmentationData; MAX_SEGMENTS],
+    pub(crate) preskip: isize,
+    pub(crate) last_active_segid: isize,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct LoopfilterModeRefDeltas {
-    mode_delta: [isize; 2],
-    ref_delta: [isize; TOTAL_REFS_PER_FRAME],
+    pub(crate) mode_delta: [isize; 2],
+    pub(crate) ref_delta: [isize; TOTAL_REFS_PER_FRAME],
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct FilmGrainData {
-    seed: u16,
-    num_y_points: isize,
-    y_points: [[u8; 14]; 2], //TODO: [14][2]
-    chroma_scaling_from_luma: isize,
-    num_uv_points: [isize; 2],
-    uv_points: [[[u8; 2]; 10]; 2], //TODO: [2][10][2]
-    scaling_shift: isize,
-    ar_coeff_lag: isize,
-    ar_coeffs_y: [i8; 24],
-    ar_coeffs_uv: [[i8; 2]; 25], //TODO: [2][25]
-    ar_coeff_shift: isize,
-    grain_scale_shift: isize,
-    uv_mult: [isize; 2],
-    uv_luma_mult: [isize; 2],
-    uv_offset: [isize; 2],
-    overlap_flag: isize,
-    clip_to_restricted_range: isize,
+    pub(crate) seed: u16,
+    pub(crate) num_y_points: isize,
+    pub(crate) y_points: [[u8; 14]; 2], //TODO: [14][2]
+    pub(crate) chroma_scaling_from_luma: isize,
+    pub(crate) num_uv_points: [isize; 2],
+    pub(crate) uv_points: [[[u8; 2]; 10]; 2], //TODO: [2][10][2]
+    pub(crate) scaling_shift: isize,
+    pub(crate) ar_coeff_lag: isize,
+    pub(crate) ar_coeffs_y: [i8; 24],
+    pub(crate) ar_coeffs_uv: [[i8; 2]; 25], //TODO: [2][25]
+    pub(crate) ar_coeff_shift: isize,
+    pub(crate) grain_scale_shift: isize,
+    pub(crate) uv_mult: [isize; 2],
+    pub(crate) uv_luma_mult: [isize; 2],
+    pub(crate) uv_offset: [isize; 2],
+    pub(crate) overlap_flag: isize,
+    pub(crate) clip_to_restricted_range: isize,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct FilmGrain {
-    present: isize,
-    update: isize,
-    data: FilmGrainData,
+    pub(crate) present: isize,
+    pub(crate) update: isize,
+    pub(crate) data: FilmGrainData,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct FrameHeaderOperatingPoint {
-    buffer_removal_time: isize,
+    pub(crate) buffer_removal_time: isize,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct SuperResolution {
-    width_scale_denominator: isize,
-    enabled: isize,
+    pub(crate) width_scale_denominator: isize,
+    pub(crate) enabled: isize,
 }
 
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Tiling {
-    uniform: isize,
-    n_bytes: usize,
-    min_log2_cols: isize,
-    max_log2_cols: isize,
-    log2_cols: isize,
-    cols: isize,
-    min_log2_rows: isize,
-    max_log2_rows: isize,
-    log2_rows: isize,
-    rows: isize,
-    col_start_sb: [u16; MAX_TILE_COLS + 1],
-    row_start_sb: [u16; MAX_TILE_ROWS + 1],
-    update: isize,
+    pub(crate) uniform: isize,
+    pub(crate) n_bytes: usize,
+    pub(crate) min_log2_cols: isize,
+    pub(crate) max_log2_cols: isize,
+    pub(crate) log2_cols: isize,
+    pub(crate) cols: isize,
+    pub(crate) min_log2_rows: isize,
+    pub(crate) max_log2_rows: isize,
+    pub(crate) log2_rows: isize,
+    pub(crate) rows: isize,
+    pub(crate) col_start_sb: [u16; MAX_TILE_COLS + 1],
+    pub(crate) row_start_sb: [u16; MAX_TILE_ROWS + 1],
+    pub(crate) update: isize,
 }
 
 impl Default for Tiling {
@@ -616,133 +617,133 @@ impl fmt::Debug for Tiling {
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Quant {
-    yac: isize,
-    ydc_delta: isize,
-    udc_delta: isize,
-    uac_delta: isize,
-    vdc_delta: isize,
-    vac_delta: isize,
-    qm: isize,
-    qm_y: isize,
-    qm_u: isize,
-    qm_v: isize,
+    pub(crate) yac: isize,
+    pub(crate) ydc_delta: isize,
+    pub(crate) udc_delta: isize,
+    pub(crate) uac_delta: isize,
+    pub(crate) vdc_delta: isize,
+    pub(crate) vac_delta: isize,
+    pub(crate) qm: isize,
+    pub(crate) qm_y: isize,
+    pub(crate) qm_u: isize,
+    pub(crate) qm_v: isize,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Segmentation {
-    enabled: isize,
-    update_map: isize,
-    temporal: isize,
-    update_data: isize,
-    seg_data: SegmentationDataSet,
-    lossless: [isize; MAX_SEGMENTS],
-    qidx: [isize; MAX_SEGMENTS],
+    pub(crate) enabled: isize,
+    pub(crate) update_map: isize,
+    pub(crate) temporal: isize,
+    pub(crate) update_data: isize,
+    pub(crate) seg_data: SegmentationDataSet,
+    pub(crate) lossless: [isize; MAX_SEGMENTS],
+    pub(crate) qidx: [isize; MAX_SEGMENTS],
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Q {
-    present: isize,
-    res_log2: isize,
+    pub(crate) present: isize,
+    pub(crate) res_log2: isize,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct LF {
-    present: isize,
-    res_log2: isize,
-    multi: isize,
+    pub(crate) present: isize,
+    pub(crate) res_log2: isize,
+    pub(crate) multi: isize,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Delta {
-    q: Q,
-    lf: LF,
+    pub(crate) q: Q,
+    pub(crate) lf: LF,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct LoopFilter {
-    level_y: [isize; 2],
-    level_u: isize,
-    level_v: isize,
-    mode_ref_delta_enabled: isize,
-    mode_ref_delta_update: isize,
-    mode_ref_deltas: LoopfilterModeRefDeltas,
-    sharpness: isize,
+    pub(crate) level_y: [isize; 2],
+    pub(crate) level_u: isize,
+    pub(crate) level_v: isize,
+    pub(crate) mode_ref_delta_enabled: isize,
+    pub(crate) mode_ref_delta_update: isize,
+    pub(crate) mode_ref_deltas: LoopfilterModeRefDeltas,
+    pub(crate) sharpness: isize,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct CDEF {
-    damping: isize,
-    n_bits: isize,
-    y_strength: [isize; MAX_CDEF_STRENGTHS],
-    uv_strength: [isize; MAX_CDEF_STRENGTHS],
+    pub(crate) damping: isize,
+    pub(crate) n_bits: isize,
+    pub(crate) y_strength: [isize; MAX_CDEF_STRENGTHS],
+    pub(crate) uv_strength: [isize; MAX_CDEF_STRENGTHS],
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Restoration {
-    t: [RestorationType; 3],
-    unit_size: [isize; 2],
+    pub(crate) t: [RestorationType; 3],
+    pub(crate) unit_size: [isize; 2],
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct FrameHeader {
-    frame_type: FrameType, // type of the picture
-    width: [isize; 2],
-    height: isize,
-    frame_offset: isize,   // frame number
-    film_grain: FilmGrain, // film grain parameters
-    temporal_id: isize,
-    spatial_id: isize, // spatial and temporal id of the frame for SVC
-    show_existing_frame: isize,
-    existing_frame_idx: isize,
-    frame_id: isize,
-    frame_presentation_delay: isize,
-    show_frame: isize,
-    showable_frame: isize,
-    error_resilient_mode: isize,
-    disable_cdf_update: isize,
-    allow_screen_content_tools: isize,
-    force_integer_mv: isize,
-    frame_size_override: isize,
-    primary_ref_frame: isize,
-    buffer_removal_time_present: isize,
-    operating_points: [FrameHeaderOperatingPoint; MAX_OPERATING_POINTS],
-    refresh_frame_flags: isize,
-    render_width: isize,
-    render_height: isize,
-    super_res: SuperResolution,
-    have_render_size: isize,
-    allow_intrabc: isize,
-    frame_ref_short_signaling: isize,
-    refidx: [isize; REFS_PER_FRAME],
-    hp: isize,
-    subpel_filter_mode: FilterMode,
-    switchable_motion_mode: isize,
-    use_ref_frame_mvs: isize,
-    refresh_context: isize,
-    tiling: Tiling,
-    quant: Quant,
-    segmentation: Segmentation,
-    delta: Delta,
-    all_lossless: isize,
-    loopfilter: LoopFilter,
-    cdef: CDEF,
-    restoration: Restoration,
-    txfm_mode: TxfmMode,
-    switchable_comp_refs: isize,
-    skip_mode_allowed: isize,
-    skip_mode_enabled: isize,
-    skip_mode_refs: [isize; 2],
-    warp_motion: isize,
-    reduced_txtp_set: isize,
-    gmv: [WarpedMotionParams; REFS_PER_FRAME],
+    pub(crate) frame_type: FrameType, // type of the picture
+    pub(crate) width: [isize; 2],
+    pub(crate) height: isize,
+    pub(crate) frame_offset: isize,   // frame number
+    pub(crate) film_grain: FilmGrain, // film grain parameters
+    pub(crate) temporal_id: isize,
+    pub(crate) spatial_id: isize, // spatial and temporal id of the frame for SVC
+    pub(crate) show_existing_frame: isize,
+    pub(crate) existing_frame_idx: isize,
+    pub(crate) frame_id: isize,
+    pub(crate) frame_presentation_delay: isize,
+    pub(crate) show_frame: isize,
+    pub(crate) showable_frame: isize,
+    pub(crate) error_resilient_mode: isize,
+    pub(crate) disable_cdf_update: isize,
+    pub(crate) allow_screen_content_tools: isize,
+    pub(crate) force_integer_mv: isize,
+    pub(crate) frame_size_override: isize,
+    pub(crate) primary_ref_frame: isize,
+    pub(crate) buffer_removal_time_present: isize,
+    pub(crate) operating_points: [FrameHeaderOperatingPoint; MAX_OPERATING_POINTS],
+    pub(crate) refresh_frame_flags: isize,
+    pub(crate) render_width: isize,
+    pub(crate) render_height: isize,
+    pub(crate) super_res: SuperResolution,
+    pub(crate) have_render_size: isize,
+    pub(crate) allow_intrabc: isize,
+    pub(crate) frame_ref_short_signaling: isize,
+    pub(crate) refidx: [isize; REFS_PER_FRAME],
+    pub(crate) hp: isize,
+    pub(crate) subpel_filter_mode: FilterMode,
+    pub(crate) switchable_motion_mode: isize,
+    pub(crate) use_ref_frame_mvs: isize,
+    pub(crate) refresh_context: isize,
+    pub(crate) tiling: Tiling,
+    pub(crate) quant: Quant,
+    pub(crate) segmentation: Segmentation,
+    pub(crate) delta: Delta,
+    pub(crate) all_lossless: isize,
+    pub(crate) loopfilter: LoopFilter,
+    pub(crate) cdef: CDEF,
+    pub(crate) restoration: Restoration,
+    pub(crate) txfm_mode: TxfmMode,
+    pub(crate) switchable_comp_refs: isize,
+    pub(crate) skip_mode_allowed: isize,
+    pub(crate) skip_mode_enabled: isize,
+    pub(crate) skip_mode_refs: [isize; 2],
+    pub(crate) warp_motion: isize,
+    pub(crate) reduced_txtp_set: isize,
+    pub(crate) gmv: [WarpedMotionParams; REFS_PER_FRAME],
 }
 
 impl FrameHeader {
