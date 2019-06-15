@@ -3,12 +3,14 @@ use crate::headers::*;
 use crate::obu::*;
 use crate::util::Pixel;
 
+use std::rc::Rc;
 use std::{cmp, fmt, io};
 
 use arg_enum_proc_macro::ArgEnum;
 use num_derive::*;
 
 #[derive(Clone, Copy, Debug)]
+#[repr(C)]
 pub enum CodecStatus {
     /// The codec needs more data to produce an output Packet/Frame
     NeedMoreData,
@@ -20,6 +22,12 @@ pub enum CodecStatus {
     //Decoded,
     /// Generic fatal error
     Failure,
+}
+
+impl Default for CodecStatus {
+    fn default() -> Self {
+        CodecStatus::NeedMoreData
+    }
 }
 
 pub struct Packet {
@@ -255,6 +263,8 @@ impl Config {
 }
 
 pub struct Context<T: Pixel> {
+    pub(crate) seq_hdr: Option<Rc<SequenceHeader>>,
+    pub(crate) frame_hdr: Option<Rc<FrameHeader>>,
     pub(crate) apply_grain: bool,
     pub(crate) operating_point: i32,
     pub(crate) operating_point_idc: u32,
@@ -270,6 +280,8 @@ pub struct Context<T: Pixel> {
 impl<T: Pixel> Context<T> {
     pub fn new(config: Config) -> Self {
         Context {
+            seq_hdr: None,
+            frame_hdr: None,
             apply_grain: false,
             operating_point: 0,
             operating_point_idc: 0,

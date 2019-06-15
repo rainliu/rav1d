@@ -1,5 +1,7 @@
 use std::fmt;
 
+use num_derive::*;
+
 // Constants from Section 3. "Symbols and abbreviated terms"
 pub const MAX_CDEF_STRENGTHS: usize = 8;
 pub const MAX_OPERATING_POINTS: usize = 32;
@@ -11,7 +13,8 @@ pub const PRIMARY_REF_NONE: usize = 7;
 pub const REFS_PER_FRAME: usize = 7;
 pub const TOTAL_REFS_PER_FRAME: usize = (REFS_PER_FRAME + 1);
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[repr(C)]
 pub enum TxfmMode {
     TX_4X4_ONLY,
     TX_LARGEST,
@@ -19,7 +22,14 @@ pub enum TxfmMode {
     N_TX_MODES,
 }
 
-#[derive(Copy, Clone, Debug)]
+impl Default for TxfmMode {
+    fn default() -> Self {
+        TxfmMode::TX_4X4_ONLY
+    }
+}
+
+#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[repr(C)]
 pub enum FilterMode {
     FILTER_8TAP_REGULAR,
     FILTER_8TAP_SMOOTH,
@@ -30,14 +40,28 @@ pub enum FilterMode {
     //FILTER_SWITCHABLE = N_FILTERS,
 }
 
-#[derive(Copy, Clone, Debug)]
+impl Default for FilterMode {
+    fn default() -> Self {
+        FilterMode::FILTER_8TAP_REGULAR
+    }
+}
+
+#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[repr(C)]
 pub enum AdaptiveBoolean {
     OFF = 0,
     ON = 1,
     ADAPTIVE = 2,
 }
 
-#[derive(Copy, Clone, Debug)]
+impl Default for AdaptiveBoolean {
+    fn default() -> Self {
+        AdaptiveBoolean::OFF
+    }
+}
+
+#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[repr(C)]
 pub enum RestorationType {
     RESTORATION_NONE,
     RESTORATION_SWITCHABLE,
@@ -45,7 +69,14 @@ pub enum RestorationType {
     RESTORATION_SGRPROJ,
 }
 
-#[derive(Copy, Clone, Debug)]
+impl Default for RestorationType {
+    fn default() -> Self {
+        RestorationType::RESTORATION_NONE
+    }
+}
+
+#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[repr(C)]
 pub enum WarpedMotionType {
     WM_TYPE_IDENTITY,
     WM_TYPE_TRANSLATION,
@@ -53,7 +84,14 @@ pub enum WarpedMotionType {
     WM_TYPE_AFFINE,
 }
 
-#[derive(Copy, Clone, Debug)]
+impl Default for WarpedMotionType {
+    fn default() -> Self {
+        WarpedMotionType::WM_TYPE_IDENTITY
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct WarpedMotionParamsStruct {
     alpha: i16,
     beta: i16,
@@ -62,19 +100,28 @@ pub struct WarpedMotionParamsStruct {
 }
 
 #[derive(Copy, Clone, Debug)]
+#[repr(C)]
 pub enum WarpedMotionParamsUnion {
     Abgd(WarpedMotionParamsStruct),
     Abcd([i16; 4]),
 }
 
-#[derive(Copy, Clone, Debug)]
+impl Default for WarpedMotionParamsUnion {
+    fn default() -> Self {
+        WarpedMotionParamsUnion::Abgd(WarpedMotionParamsStruct{..Default::default()})
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct WarpedMotionParams {
     t: WarpedMotionType,
     matrix: [i32; 6],
     u: WarpedMotionParamsUnion,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[repr(C)]
 pub enum PixelLayout {
     PIXEL_LAYOUT_I400, // monochrome
     PIXEL_LAYOUT_I420, // 4:2:0 planar
@@ -82,7 +129,14 @@ pub enum PixelLayout {
     PIXEL_LAYOUT_I444, // 4:4:4 planar
 }
 
-#[derive(Copy, Clone, Debug)]
+impl Default for PixelLayout {
+    fn default() -> Self {
+        PixelLayout::PIXEL_LAYOUT_I400
+    }
+}
+
+#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[repr(C)]
 pub enum FrameType {
     FRAME_TYPE_KEY = 0,    // Key Intra frame
     FRAME_TYPE_INTER = 1,  // Inter frame
@@ -90,7 +144,14 @@ pub enum FrameType {
     FRAME_TYPE_SWITCH = 3, // Switch Inter frame
 }
 
-#[derive(Copy, Clone, Debug)]
+impl Default for FrameType {
+    fn default() -> Self {
+        FrameType::FRAME_TYPE_KEY
+    }
+}
+
+#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[repr(C)]
 pub enum ColorPrimaries {
     COLOR_PRI_BT709 = 1,
     COLOR_PRI_UNKNOWN = 2,
@@ -106,7 +167,14 @@ pub enum ColorPrimaries {
     COLOR_PRI_EBU3213 = 22,
 }
 
-#[derive(Copy, Clone, Debug)]
+impl Default for ColorPrimaries {
+    fn default() -> Self {
+        ColorPrimaries::COLOR_PRI_BT709
+    }
+}
+
+#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[repr(C)]
 pub enum TransferCharacteristics {
     TRC_BT709 = 1,
     TRC_UNKNOWN = 2,
@@ -127,7 +195,14 @@ pub enum TransferCharacteristics {
     TRC_HLG = 18, // hybrid log/gamma (BT.2100 / ARIB STD-B67)
 }
 
-#[derive(Copy, Clone, Debug)]
+impl Default for TransferCharacteristics {
+    fn default() -> Self {
+        TransferCharacteristics::TRC_BT709
+    }
+}
+
+#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[repr(C)]
 pub enum MatrixCoefficients {
     MC_IDENTITY = 0,
     MC_BT709 = 1,
@@ -145,7 +220,14 @@ pub enum MatrixCoefficients {
     MC_ICTCP = 14,
 }
 
-#[derive(Copy, Clone, Debug)]
+impl Default for MatrixCoefficients {
+    fn default() -> Self {
+        MatrixCoefficients::MC_IDENTITY
+    }
+}
+
+#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[repr(C)]
 pub enum ChromaSamplePosition {
     CHR_UNKNOWN = 0,
     CHR_VERTICAL = 1, // Horizontally co-located with luma(0, 0)
@@ -153,13 +235,22 @@ pub enum ChromaSamplePosition {
     CHR_COLOCATED = 2, // Co-located with luma(0, 0) sample
 }
 
-#[derive(Copy, Clone, Debug)]
+impl Default for ChromaSamplePosition {
+    fn default() -> Self {
+        ChromaSamplePosition::CHR_UNKNOWN
+    }
+}
+
+
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct ContentLightLevel {
     max_content_light_level: isize,
     max_frame_average_light_level: isize,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct MasteringDisplay {
     // 0.16 fixed point
     primaries: [[u16; 3]; 2], //TODO: confirm [3][2]?
@@ -171,7 +262,8 @@ pub struct MasteringDisplay {
     min_luminance: u32,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct SequenceHeaderOperatingPoint {
     major_level: isize,
     minor_level: isize,
@@ -182,14 +274,16 @@ pub struct SequenceHeaderOperatingPoint {
     display_model_param_present: isize,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct SequenceHeaderOperatingParameterInfo {
     decoder_buffer_delay: isize,
     encoder_buffer_delay: isize,
     low_delay_mode: isize,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct SequenceHeader {
     /**
      * Stream profile, 0 for 8-10 bits/component 4:2:0 or monochrome;
@@ -276,7 +370,8 @@ pub struct SequenceHeader {
     operating_parameter_info: [SequenceHeaderOperatingParameterInfo; MAX_OPERATING_POINTS],
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct SegmentationData {
     delta_q: isize,
     delta_lf_y_v: isize,
@@ -288,20 +383,23 @@ pub struct SegmentationData {
     globalmv: isize,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct SegmentationDataSet {
     d: [SegmentationData; MAX_SEGMENTS],
     preskip: isize,
     last_active_segid: isize,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct LoopfilterModeRefDeltas {
     mode_delta: [isize; 2],
     ref_delta: [isize; TOTAL_REFS_PER_FRAME],
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct FilmGrainData {
     seed: u16,
     num_y_points: isize,
@@ -322,25 +420,29 @@ pub struct FilmGrainData {
     clip_to_restricted_range: isize,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct FilmGrain {
     present: isize,
     update: isize,
     data: FilmGrainData,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct FrameHeaderOperatingPoint {
     buffer_removal_time: isize,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct SuperResolution {
     width_scale_denominator: isize,
     enabled: isize,
 }
 
 #[derive(Copy, Clone)]
+#[repr(C)]
 pub struct Tiling {
     uniform: isize,
     n_bytes: usize,
@@ -355,6 +457,26 @@ pub struct Tiling {
     col_start_sb: [u16; MAX_TILE_COLS + 1],
     row_start_sb: [u16; MAX_TILE_ROWS + 1],
     update: isize,
+}
+
+impl Default for Tiling {
+    fn default() -> Self {
+        Tiling {
+            uniform: 0,
+            n_bytes: 0,
+            min_log2_cols: 0,
+            max_log2_cols: 0,
+            log2_cols: 0,
+            cols: 0,
+            min_log2_rows: 0,
+            max_log2_rows: 0,
+            log2_rows: 0,
+            rows: 0,
+            col_start_sb: [0; MAX_TILE_COLS + 1],
+            row_start_sb: [0; MAX_TILE_ROWS + 1],
+            update: 0,
+        }
+    }
 }
 
 impl fmt::Debug for Tiling {
@@ -392,7 +514,8 @@ impl fmt::Debug for Tiling {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct Quant {
     yac: isize,
     ydc_delta: isize,
@@ -406,7 +529,8 @@ pub struct Quant {
     qm_v: isize,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct Segmentation {
     enabled: isize,
     update_map: isize,
@@ -417,26 +541,30 @@ pub struct Segmentation {
     qidx: [isize; MAX_SEGMENTS],
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct Q {
     present: isize,
     res_log2: isize,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct LF {
     present: isize,
     res_log2: isize,
     multi: isize,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct Delta {
     q: Q,
     lf: LF,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct LoopFilter {
     level_y: [isize; 2],
     level_u: isize,
@@ -447,7 +575,8 @@ pub struct LoopFilter {
     sharpness: isize,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct CDEF {
     damping: isize,
     n_bits: isize,
@@ -455,13 +584,15 @@ pub struct CDEF {
     uv_strength: [isize; MAX_CDEF_STRENGTHS],
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct Restoration {
     t: [RestorationType; 3],
     unit_size: [isize; 2],
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
 pub struct FrameHeader {
     frame_type: FrameType, // type of the picture
     width: [isize; 2],

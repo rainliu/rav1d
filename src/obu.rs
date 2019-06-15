@@ -3,10 +3,13 @@ use crate::frame::Frame;
 use crate::levels::*;
 use crate::util::Pixel;
 use crate::getbits::*;
+use crate::headers::*;
 
+use std::rc::Rc;
 use std::io;
 
 use num_traits::FromPrimitive;
+use crate::headers::SequenceHeader;
 
 impl<T: Pixel> Context<T> {
     pub fn parse_obus(&mut self, offset: usize, global: bool) -> io::Result<usize> {
@@ -73,7 +76,7 @@ impl<T: Pixel> Context<T> {
 
         match FromPrimitive::from_u32(obu_type) {
             Some(ObuType::OBU_SEQ_HDR) => {
-
+                //let seq_hdr = Rc::new(SequenceHeader);
             }
             Some(ObuType::OBU_REDUNDANT_FRAME_HDR) => {
 
