@@ -5,8 +5,8 @@ use crate::headers::*;
 use crate::levels::*;
 use crate::util::Pixel;
 
-use std::io;
 use std::rc::Rc;
+use std::{cmp, io};
 
 use crate::headers::SequenceHeader;
 use num_traits::FromPrimitive;
@@ -20,12 +20,20 @@ fn check_error(condition: bool, msg: &str) -> io::Result<()> {
     }
 }
 
+#[inline(always)]
+fn tile_log2(sz: i32, tgt: i32) -> i32 {
+    let mut k = 0;
+    while (sz << k) < tgt {
+        k += 1;
+    }
+    k
+}
+
 fn parse_seq_hdr(
     gb: &mut GetBits,
     hdr: &mut SequenceHeader,
     operating_point: usize,
 ) -> io::Result<u32> {
-    let mut operating_point_idc: u32 = 0;
     let init_bit_pos = gb.get_bits_pos();
 
     hdr.profile = gb.get_bits(3) as u8;
@@ -45,6 +53,8 @@ fn parse_seq_hdr(
         "SEQHDR: post-stillpicture_flags: off={}\n",
         gb.get_bits_pos() - init_bit_pos
     );
+
+    let mut operating_point_idc: u32 = 0;
 
     if hdr.reduced_still_picture_header {
         hdr.timing_info_present = false;
@@ -314,6 +324,323 @@ fn parse_seq_hdr(
     Ok(operating_point_idc)
 }
 
+fn parse_frame_size(
+    gb: &mut GetBits,
+    seqhdr: &SequenceHeader,
+    hdr: &mut FrameHeader,
+    use_ref: bool,
+) -> io::Result<()> {
+    if use_ref {
+        for i in 0..7 {
+            if gb.get_bits(1) != 0 {
+                unimplemented!();
+                /*Dav1dThreadPicture *const r =
+                    &c->refs[c->frame_hdr.refidx[i]].p;
+                if (!ref->p.data[0]) return -1;
+                // FIXME render_* may be wrong
+                hdr.render_width = hdr.width[1] = r->p.p.w;
+                hdr.render_height = hdr.height = r->p.p.h;
+                hdr.super_res.enabled = seqhdr.super_res && gb.get_bits(1) != 0;
+                if hdr.super_res.enabled {
+                    hdr.super_res.width_scale_denominator =
+                        9 + gb.get_bits( 3);
+                    let d = hdr.super_res.width_scale_denominator;
+                    hdr.width[0] = cmp::max((hdr.width[1] * 8 + (d >> 1)) / d,
+                                     cmp::min(16, hdr.width[1]));
+                } else {
+                    hdr.super_res.width_scale_denominator = 8;
+                    hdr.width[0] = hdr.width[1];
+                }*/
+                return Ok(());
+            }
+        }
+    }
+
+    if hdr.frame_size_override {
+        hdr.width[1] = gb.get_bits(seqhdr.width_n_bits) + 1;
+        hdr.height = gb.get_bits(seqhdr.height_n_bits) + 1;
+    } else {
+        hdr.width[1] = seqhdr.max_width;
+        hdr.height = seqhdr.max_height;
+    }
+    hdr.super_res.enabled = seqhdr.super_res && gb.get_bits(1) != 0;
+    if hdr.super_res.enabled {
+        hdr.super_res.width_scale_denominator = 9 + gb.get_bits(3);
+        let d = hdr.super_res.width_scale_denominator;
+        hdr.width[0] = cmp::max(
+            (hdr.width[1] * 8 + (d >> 1)) / d,
+            cmp::min(16, hdr.width[1]),
+        );
+    } else {
+        hdr.super_res.width_scale_denominator = 8;
+        hdr.width[0] = hdr.width[1];
+    }
+    hdr.have_render_size = gb.get_bits(1) != 0;
+    if hdr.have_render_size {
+        hdr.render_width = gb.get_bits(16) + 1;
+        hdr.render_height = gb.get_bits(16) + 1;
+    } else {
+        hdr.render_width = hdr.width[1];
+        hdr.render_height = hdr.height;
+    }
+    Ok(())
+}
+
+fn parse_frame_hdr(
+    gb: &mut GetBits,
+    seqhdr: &SequenceHeader,
+    hdr: &mut FrameHeader,
+) -> io::Result<()> {
+    let init_bit_pos = gb.get_bits_pos();
+
+    hdr.show_existing_frame = !seqhdr.reduced_still_picture_header && gb.get_bits(1) != 0;
+    rav1d_log!(
+        "HDR: post-show_existing_frame: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
+
+    if hdr.show_existing_frame {
+        hdr.existing_frame_idx = gb.get_bits(3);
+        if seqhdr.decoder_model_info_present && !seqhdr.equal_picture_interval {
+            hdr.frame_presentation_delay = gb.get_bits(seqhdr.frame_presentation_delay_length);
+        }
+        if seqhdr.frame_id_numbers_present {
+            hdr.frame_id = gb.get_bits(seqhdr.frame_id_n_bits);
+        }
+        return Ok(());
+    }
+
+    hdr.frame_type = if seqhdr.reduced_still_picture_header {
+        FrameType::FRAME_TYPE_KEY
+    } else {
+        FromPrimitive::from_u32(gb.get_bits(2)).unwrap()
+    };
+    hdr.show_frame = seqhdr.reduced_still_picture_header || gb.get_bits(1) != 0;
+    if hdr.show_frame {
+        if seqhdr.decoder_model_info_present && !seqhdr.equal_picture_interval {
+            hdr.frame_presentation_delay = gb.get_bits(seqhdr.frame_presentation_delay_length);
+        }
+    } else {
+        hdr.showable_frame = gb.get_bits(1) != 0;
+    }
+    hdr.error_resilient_mode = (hdr.frame_type == FrameType::FRAME_TYPE_KEY && hdr.show_frame)
+        || hdr.frame_type == FrameType::FRAME_TYPE_SWITCH
+        || seqhdr.reduced_still_picture_header
+        || gb.get_bits(1) != 0;
+
+    rav1d_log!(
+        "HDR: post-frametype_bits: off={}\n",
+        gb.get_bits_pos() - init_bit_pos,
+    );
+
+    hdr.disable_cdf_update = gb.get_bits(1) != 0;
+    hdr.allow_screen_content_tools = if seqhdr.screen_content_tools == AdaptiveBoolean::ADAPTIVE {
+        if gb.get_bits(1) == 0 {
+            AdaptiveBoolean::OFF
+        } else {
+            AdaptiveBoolean::ON
+        }
+    } else {
+        seqhdr.screen_content_tools
+    };
+    if hdr.allow_screen_content_tools != AdaptiveBoolean::OFF {
+        hdr.force_integer_mv = if seqhdr.force_integer_mv == AdaptiveBoolean::ADAPTIVE {
+            if gb.get_bits(1) == 0 {
+                AdaptiveBoolean::OFF
+            } else {
+                AdaptiveBoolean::ON
+            }
+        } else {
+            seqhdr.force_integer_mv
+        };
+    } else {
+        hdr.force_integer_mv = AdaptiveBoolean::OFF;
+    }
+    if (hdr.frame_type as u8 & 1) == 0 {
+        hdr.force_integer_mv = AdaptiveBoolean::ON;
+    }
+
+    if seqhdr.frame_id_numbers_present {
+        hdr.frame_id = gb.get_bits(seqhdr.frame_id_n_bits);
+    }
+
+    hdr.frame_size_override = if seqhdr.reduced_still_picture_header {
+        false
+    } else if hdr.frame_type == FrameType::FRAME_TYPE_SWITCH {
+        true
+    } else {
+        gb.get_bits(1) != 0
+    };
+
+    rav1d_log!(
+        "HDR: post-frame_size_override_flag: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
+
+    hdr.frame_offset = if seqhdr.order_hint {
+        gb.get_bits(seqhdr.order_hint_n_bits)
+    } else {
+        0
+    };
+    hdr.primary_ref_frame = if !hdr.error_resilient_mode && (hdr.frame_type as u32 & 1) != 0 {
+        gb.get_bits(3)
+    } else {
+        PRIMARY_REF_NONE as u32
+    };
+
+    if seqhdr.decoder_model_info_present {
+        hdr.buffer_removal_time_present = gb.get_bits(1) != 0;
+        if hdr.buffer_removal_time_present {
+            for i in 0..seqhdr.num_operating_points {
+                let seqop = &seqhdr.operating_points[i];
+                let op = &mut hdr.operating_points[i];
+                if seqop.decoder_model_param_present {
+                    let in_temporal_layer = (seqop.idc >> hdr.temporal_id) & 1;
+                    let in_spatial_layer = (seqop.idc >> (hdr.spatial_id + 8)) & 1;
+                    if seqop.idc == 0 || (in_temporal_layer != 0 && in_spatial_layer != 0) {
+                        op.buffer_removal_time = gb.get_bits(seqhdr.buffer_removal_delay_length);
+                    }
+                }
+            }
+        }
+    }
+
+    if hdr.frame_type == FrameType::FRAME_TYPE_KEY || hdr.frame_type == FrameType::FRAME_TYPE_INTRA
+    {
+        hdr.refresh_frame_flags = if hdr.frame_type == FrameType::FRAME_TYPE_KEY && hdr.show_frame {
+            0xff
+        } else {
+            gb.get_bits(8)
+        };
+        if hdr.refresh_frame_flags != 0xff && hdr.error_resilient_mode && seqhdr.order_hint {
+            for _ in 0..8 {
+                gb.get_bits(seqhdr.order_hint_n_bits);
+            }
+        }
+
+        parse_frame_size(gb, seqhdr, hdr, false)?;
+        hdr.allow_intrabc = hdr.allow_screen_content_tools != AdaptiveBoolean::OFF
+            && !hdr.super_res.enabled
+            && gb.get_bits(1) != 0;
+        hdr.use_ref_frame_mvs = 0;
+    } else {
+        unimplemented!();
+    }
+    rav1d_log!(
+        "HDR: post-frametype-specific-bits: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
+
+    hdr.refresh_context =
+        !seqhdr.reduced_still_picture_header && !hdr.disable_cdf_update && !gb.get_bits(1) != 0;
+    rav1d_log!(
+        "HDR: post-refresh_context: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
+
+    // tile data
+    hdr.tiling.uniform = gb.get_bits(1) != 0;
+    let sbsz_min1 = (64 << seqhdr.sb128 as i32) - 1;
+    let sbsz_log2 = 6 + seqhdr.sb128 as i32;
+    let sbw = (hdr.width[0] as i32 + sbsz_min1) >> sbsz_log2;
+    let sbh = (hdr.height as i32 + sbsz_min1) >> sbsz_log2;
+    let max_tile_width_sb = 4096 >> sbsz_log2;
+    let max_tile_area_sb = 4096 * 2304 >> (2 * sbsz_log2);
+    hdr.tiling.min_log2_cols = tile_log2(max_tile_width_sb, sbw);
+    hdr.tiling.max_log2_cols = tile_log2(1, cmp::min(sbw, MAX_TILE_COLS as i32));
+    hdr.tiling.max_log2_rows = tile_log2(1, cmp::min(sbh, MAX_TILE_ROWS as i32));
+    let min_log2_tiles = cmp::max(
+        tile_log2(max_tile_area_sb, sbw * sbh),
+        hdr.tiling.min_log2_cols,
+    );
+    if hdr.tiling.uniform {
+        hdr.tiling.log2_cols = hdr.tiling.min_log2_cols;
+        while hdr.tiling.log2_cols < hdr.tiling.max_log2_cols && gb.get_bits(1) != 0 {
+            hdr.tiling.log2_cols += 1;
+        }
+        let tile_w = 1 + ((sbw - 1) >> hdr.tiling.log2_cols);
+        hdr.tiling.cols = 0;
+        let mut sbx = 0;
+        while sbx < sbw {
+            hdr.tiling.col_start_sb[hdr.tiling.cols as usize] = sbx as u16;
+            sbx += tile_w;
+            hdr.tiling.cols += 1;
+        }
+        hdr.tiling.min_log2_rows = cmp::max(min_log2_tiles - hdr.tiling.log2_cols, 0);
+
+        hdr.tiling.log2_rows = hdr.tiling.min_log2_rows;
+        while hdr.tiling.log2_rows < hdr.tiling.max_log2_rows && gb.get_bits(1) != 0 {
+            hdr.tiling.log2_rows += 1;
+        }
+        let tile_h = 1 + ((sbh - 1) >> hdr.tiling.log2_rows);
+        hdr.tiling.rows = 0;
+        let mut sby = 0;
+        while sby < sbh {
+            hdr.tiling.row_start_sb[hdr.tiling.rows as usize] = sby as u16;
+            sby += tile_h;
+            hdr.tiling.rows += 1;
+        }
+    } else {
+        hdr.tiling.cols = 0;
+        let mut widest_tile = 0;
+        let mut max_tile_area_sb = sbw * sbh;
+        let mut sbx = 0;
+        while sbx < sbw && hdr.tiling.cols < MAX_TILE_COLS as i32 {
+            let tile_width_sb = cmp::min(sbw - sbx, max_tile_width_sb);
+            let tile_w = if tile_width_sb > 1 {
+                1 + gb.get_uniform(tile_width_sb as u32)
+            } else {
+                1
+            } as i32;
+            hdr.tiling.col_start_sb[hdr.tiling.cols as usize] = sbx as u16;
+            sbx += tile_w;
+            widest_tile = cmp::max(widest_tile, tile_w);
+            hdr.tiling.cols += 1;
+        }
+        hdr.tiling.log2_cols = tile_log2(1, hdr.tiling.cols);
+        if min_log2_tiles != 0 {
+            max_tile_area_sb >>= min_log2_tiles + 1;
+        }
+        let max_tile_height_sb = cmp::max(max_tile_area_sb / widest_tile, 1);
+
+        hdr.tiling.rows = 0;
+        let mut sby = 0;
+        while sby < sbh && hdr.tiling.rows < MAX_TILE_ROWS as i32 {
+            let tile_height_sb = cmp::min(sbh - sby, max_tile_height_sb);
+            let tile_h = if tile_height_sb > 1 {
+                1 + gb.get_uniform(tile_height_sb as u32)
+            } else {
+                1
+            } as i32;
+            hdr.tiling.row_start_sb[hdr.tiling.rows as usize] = sby as u16;
+            sby += tile_h;
+            hdr.tiling.rows += 1;
+        }
+        hdr.tiling.log2_rows = tile_log2(1, hdr.tiling.rows);
+    }
+    hdr.tiling.col_start_sb[hdr.tiling.cols as usize] = sbw as u16;
+    hdr.tiling.row_start_sb[hdr.tiling.rows as usize] = sbh as u16;
+    if hdr.tiling.log2_cols != 0 || hdr.tiling.log2_rows != 0 {
+        hdr.tiling.update =
+            gb.get_bits((hdr.tiling.log2_cols + hdr.tiling.log2_rows) as u32) as i32;
+        check_error(
+            hdr.tiling.update >= hdr.tiling.cols * hdr.tiling.rows,
+            "hdr.tiling.update >= hdr.tiling.cols * hdr.tiling.rows",
+        )?;
+        hdr.tiling.n_bytes = gb.get_bits(2) + 1;
+    } else {
+        hdr.tiling.n_bytes = 0;
+        hdr.tiling.update = 0;
+    }
+
+    rav1d_log!(
+        "HDR: post-tiling: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
+
+    Ok(())
+}
+
 impl<T: Pixel> Context<T> {
     pub fn parse_obus(&mut self, offset: usize, global: bool) -> io::Result<usize> {
         let data = &self.packet.as_ref().unwrap().data[offset..];
@@ -379,11 +706,8 @@ impl<T: Pixel> Context<T> {
         match FromPrimitive::from_u32(obu_type) {
             Some(ObuType::OBU_SEQ_HDR) => {
                 let mut seq_hdr = Rc::new(SequenceHeader::new());
-                self.operating_point_idc = parse_seq_hdr(
-                    &mut gb,
-                    Rc::get_mut(&mut seq_hdr).unwrap(),
-                    self.operating_point,
-                )?;
+                self.operating_point_idc =
+                    parse_seq_hdr(&mut gb, Rc::make_mut(&mut seq_hdr), self.operating_point)?;
                 gb.check_overrun(init_bit_pos as u32, len as u32)?;
                 if self.seq_hdr.is_none() {
                     self.frame_hdr = None;
@@ -406,10 +730,30 @@ impl<T: Pixel> Context<T> {
                 }
                 self.seq_hdr = Some(seq_hdr);
             }
-            Some(ObuType::OBU_REDUNDANT_FRAME_HDR) => {}
+            Some(t @ ObuType::OBU_REDUNDANT_FRAME_HDR)
+            | Some(t @ ObuType::OBU_FRAME)
+            | Some(t @ ObuType::OBU_FRAME_HDR) => matched_block!({
+                if t == ObuType::OBU_REDUNDANT_FRAME_HDR && self.frame_hdr.is_some() {
+                    break;
+                }
+                if global {
+                    break;
+                }
+                check_error(self.seq_hdr.is_none(), "seq_hdr.is_none()")?;
+                if self.frame_hdr.is_none() {
+                    self.frame_hdr = Some(Rc::new(FrameHeader::new()));
+                }
+                if let Some(frame_hdr) = self.frame_hdr.as_mut() {
+                    parse_frame_hdr(
+                        &mut gb,
+                        self.seq_hdr.as_ref().unwrap(),
+                        Rc::make_mut(frame_hdr),
+                    )?;
+                }
+            }),
             _ => {
                 // print a warning but don't fail for unknown types
-                // log(c, "Unknown OBU type %d of size %u\n", type, len);
+                rav1d_log!("Unknown OBU type {} of size {}\n", obu_type, len);
             }
         }
 

@@ -505,38 +505,38 @@ pub struct FilmGrain {
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct FrameHeaderOperatingPoint {
-    pub(crate) buffer_removal_time: isize,
+    pub(crate) buffer_removal_time: u32,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct SuperResolution {
-    pub(crate) width_scale_denominator: isize,
-    pub(crate) enabled: isize,
+    pub(crate) width_scale_denominator: u32,
+    pub(crate) enabled: bool,
 }
 
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Tiling {
-    pub(crate) uniform: isize,
-    pub(crate) n_bytes: usize,
-    pub(crate) min_log2_cols: isize,
-    pub(crate) max_log2_cols: isize,
-    pub(crate) log2_cols: isize,
-    pub(crate) cols: isize,
-    pub(crate) min_log2_rows: isize,
-    pub(crate) max_log2_rows: isize,
-    pub(crate) log2_rows: isize,
-    pub(crate) rows: isize,
+    pub(crate) uniform: bool,
+    pub(crate) n_bytes: u32,
+    pub(crate) min_log2_cols: i32,
+    pub(crate) max_log2_cols: i32,
+    pub(crate) log2_cols: i32,
+    pub(crate) cols: i32,
+    pub(crate) min_log2_rows: i32,
+    pub(crate) max_log2_rows: i32,
+    pub(crate) log2_rows: i32,
+    pub(crate) rows: i32,
     pub(crate) col_start_sb: [u16; MAX_TILE_COLS + 1],
     pub(crate) row_start_sb: [u16; MAX_TILE_ROWS + 1],
-    pub(crate) update: isize,
+    pub(crate) update: i32,
 }
 
 impl Default for Tiling {
     fn default() -> Self {
         Tiling {
-            uniform: 0,
+            uniform: false,
             n_bytes: 0,
             min_log2_cols: 0,
             max_log2_cols: 0,
@@ -695,39 +695,39 @@ pub struct Restoration {
 #[repr(C)]
 pub struct FrameHeader {
     pub(crate) frame_type: FrameType, // type of the picture
-    pub(crate) width: [isize; 2],
-    pub(crate) height: isize,
-    pub(crate) frame_offset: isize,   // frame number
+    pub(crate) width: [u32; 2],
+    pub(crate) height: u32,
+    pub(crate) frame_offset: u32,   // frame number
     pub(crate) film_grain: FilmGrain, // film grain parameters
-    pub(crate) temporal_id: isize,
-    pub(crate) spatial_id: isize, // spatial and temporal id of the frame for SVC
-    pub(crate) show_existing_frame: isize,
-    pub(crate) existing_frame_idx: isize,
-    pub(crate) frame_id: isize,
-    pub(crate) frame_presentation_delay: isize,
-    pub(crate) show_frame: isize,
-    pub(crate) showable_frame: isize,
-    pub(crate) error_resilient_mode: isize,
-    pub(crate) disable_cdf_update: isize,
-    pub(crate) allow_screen_content_tools: isize,
-    pub(crate) force_integer_mv: isize,
-    pub(crate) frame_size_override: isize,
-    pub(crate) primary_ref_frame: isize,
-    pub(crate) buffer_removal_time_present: isize,
+    pub(crate) temporal_id: u32,
+    pub(crate) spatial_id: u32, // spatial and temporal id of the frame for SVC
+    pub(crate) show_existing_frame: bool,
+    pub(crate) existing_frame_idx: u32,
+    pub(crate) frame_id: u32,
+    pub(crate) frame_presentation_delay: u32,
+    pub(crate) show_frame: bool,
+    pub(crate) showable_frame: bool,
+    pub(crate) error_resilient_mode: bool,
+    pub(crate) disable_cdf_update: bool,
+    pub(crate) allow_screen_content_tools: AdaptiveBoolean,
+    pub(crate) force_integer_mv: AdaptiveBoolean,
+    pub(crate) frame_size_override: bool,
+    pub(crate) primary_ref_frame: u32,
+    pub(crate) buffer_removal_time_present: bool,
     pub(crate) operating_points: [FrameHeaderOperatingPoint; MAX_OPERATING_POINTS],
-    pub(crate) refresh_frame_flags: isize,
-    pub(crate) render_width: isize,
-    pub(crate) render_height: isize,
+    pub(crate) refresh_frame_flags: u32,
+    pub(crate) render_width: u32,
+    pub(crate) render_height: u32,
     pub(crate) super_res: SuperResolution,
-    pub(crate) have_render_size: isize,
-    pub(crate) allow_intrabc: isize,
+    pub(crate) have_render_size: bool,
+    pub(crate) allow_intrabc: bool,
     pub(crate) frame_ref_short_signaling: isize,
     pub(crate) refidx: [isize; REFS_PER_FRAME],
     pub(crate) hp: isize,
     pub(crate) subpel_filter_mode: FilterMode,
     pub(crate) switchable_motion_mode: isize,
     pub(crate) use_ref_frame_mvs: isize,
-    pub(crate) refresh_context: isize,
+    pub(crate) refresh_context: bool,
     pub(crate) tiling: Tiling,
     pub(crate) quant: Quant,
     pub(crate) segmentation: Segmentation,

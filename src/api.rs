@@ -152,9 +152,20 @@ impl Config {
     }
 }
 
+// reference/entropy state
+pub(crate) struct RefState{
+    //Dav1dThreadPicture p;
+    //Dav1dRef *segmap;
+    //Dav1dRef *refmvs;
+    refpoc:[u32; 7],
+}
+
 pub struct Context<T: Pixel> {
     pub(crate) seq_hdr: Option<Rc<SequenceHeader>>,
     pub(crate) frame_hdr: Option<Rc<FrameHeader>>,
+    //pub(crate) refs: [RefState; 8],
+
+
     pub(crate) apply_grain: bool,
     pub(crate) operating_point: usize,
     pub(crate) operating_point_idc: u32,
