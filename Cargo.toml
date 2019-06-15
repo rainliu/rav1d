@@ -11,6 +11,7 @@ repository = "https://github.com/rainliu/rav1d"
 include = ["**/*.rs",  "Cargo.toml"]
 
 [features]
+debug_log = []
 binaries = ["ivf", "y4m", "clap"]
 default = ["binaries"]
 

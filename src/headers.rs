@@ -370,6 +370,12 @@ pub struct SequenceHeader {
     operating_parameter_info: [SequenceHeaderOperatingParameterInfo; MAX_OPERATING_POINTS],
 }
 
+impl SequenceHeader{
+    pub fn new() -> Self{
+        SequenceHeader{..Default::default()}
+    }
+}
+
 #[derive(Copy, Clone, Debug, Default)]
 #[repr(C)]
 pub struct SegmentationData {
@@ -644,4 +650,10 @@ pub struct FrameHeader {
     warp_motion: isize,
     reduced_txtp_set: isize,
     gmv: [WarpedMotionParams; REFS_PER_FRAME],
+}
+
+impl FrameHeader{
+    pub fn new() -> Self{
+        FrameHeader{..Default::default()}
+    }
 }

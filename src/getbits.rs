@@ -76,6 +76,34 @@ impl<'a> GetBits<'a> {
         }
     }
 
+
+    // Check that we haven't read more than obu_len bytes from the buffer
+    // since init_bit_pos.
+    pub fn check_overrun(&self, init_bit_pos: u32, obu_len: u32) -> io::Result<()> {
+        // Make sure we haven't actually read past the end of the gb buffer
+        if self.error {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Overrun in OBU bit buffer",
+            ));
+        }
+
+        let pos = self.get_bits_pos();
+
+        // We assume that init_bit_pos was the bit position of the buffer
+        // at some point in the past, so cannot be smaller than pos.
+        debug_assert! (init_bit_pos <= pos);
+
+        if pos - init_bit_pos > 8 * obu_len {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Overrun in OBU bit buffer into next OBU",
+            ));
+        }
+
+        Ok(())
+    }
+
     pub fn get_bits(&mut self, n: u32) -> u32 {
         debug_assert!(n <= 32 /* can go up to 57 if we change return type */);
         debug_assert!(n != 0 /* can't shift state by 64 */);

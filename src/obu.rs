@@ -1,20 +1,24 @@
 use crate::api::*;
 use crate::frame::Frame;
-use crate::levels::*;
-use crate::util::Pixel;
 use crate::getbits::*;
 use crate::headers::*;
+use crate::levels::*;
+use crate::util::Pixel;
 
-use std::rc::Rc;
 use std::io;
+use std::rc::Rc;
 
-use num_traits::FromPrimitive;
 use crate::headers::SequenceHeader;
+use num_traits::FromPrimitive;
+
+fn parse_seq_hdr(gb: &mut GetBits, seq_hdr: &mut SequenceHeader, operating_point_idc: u32) -> io::Result<u32> {
+    rav1d_log!("hello world");
+    Ok(operating_point_idc)
+}
 
 impl<T: Pixel> Context<T> {
     pub fn parse_obus(&mut self, offset: usize, global: bool) -> io::Result<usize> {
-        let pkt = self.packet.as_ref().unwrap();
-        let data = &pkt.data[pkt.offset..];
+        let data = &self.packet.as_ref().unwrap().data[offset..];
         let mut gb = GetBits::new(data);
 
         // obu header
@@ -32,9 +36,9 @@ impl<T: Pixel> Context<T> {
         }
 
         // obu length field
-        let len =  if has_length_field {
+        let len = if has_length_field {
             gb.get_uleb128() as usize
-        }else {
+        } else {
             (data.len() as isize - 1 - has_extension as isize) as usize
         };
         gb.check_error()?;
@@ -76,18 +80,17 @@ impl<T: Pixel> Context<T> {
 
         match FromPrimitive::from_u32(obu_type) {
             Some(ObuType::OBU_SEQ_HDR) => {
-                //let seq_hdr = Rc::new(SequenceHeader);
+                let mut seq_hdr = Rc::new(SequenceHeader::new());
+                self.operating_point_idc = parse_seq_hdr(&mut gb, Rc::get_mut(&mut seq_hdr).unwrap(), self.operating_point_idc)?;
             }
-            Some(ObuType::OBU_REDUNDANT_FRAME_HDR) => {
-
-            }
+            Some(ObuType::OBU_REDUNDANT_FRAME_HDR) => {}
             _ => {
                 // print a warning but don't fail for unknown types
                 // log(c, "Unknown OBU type %d of size %u\n", type, len);
             }
         }
 
-        self.frame = Some(Frame::new(352, 288, ChromaSampling::Cs420));
-        Ok(pkt.data.len())
+        //self.frame = Some(Frame::new(352, 288, ChromaSampling::Cs420));
+        Ok(len + init_byte_pos)
     }
 }
