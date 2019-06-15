@@ -13,7 +13,7 @@ pub const PRIMARY_REF_NONE: usize = 7;
 pub const REFS_PER_FRAME: usize = 7;
 pub const TOTAL_REFS_PER_FRAME: usize = (REFS_PER_FRAME + 1);
 
-#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum TxfmMode {
     TX_4X4_ONLY,
@@ -28,7 +28,7 @@ impl Default for TxfmMode {
     }
 }
 
-#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum FilterMode {
     FILTER_8TAP_REGULAR,
@@ -46,7 +46,7 @@ impl Default for FilterMode {
     }
 }
 
-#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum AdaptiveBoolean {
     OFF = 0,
@@ -60,7 +60,7 @@ impl Default for AdaptiveBoolean {
     }
 }
 
-#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum RestorationType {
     RESTORATION_NONE,
@@ -75,7 +75,7 @@ impl Default for RestorationType {
     }
 }
 
-#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum WarpedMotionType {
     WM_TYPE_IDENTITY,
@@ -90,7 +90,7 @@ impl Default for WarpedMotionType {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 #[repr(C)]
 pub struct WarpedMotionParamsStruct {
     alpha: i16,
@@ -99,7 +99,7 @@ pub struct WarpedMotionParamsStruct {
     delta: i16,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(C)]
 pub enum WarpedMotionParamsUnion {
     Abgd(WarpedMotionParamsStruct),
@@ -108,11 +108,13 @@ pub enum WarpedMotionParamsUnion {
 
 impl Default for WarpedMotionParamsUnion {
     fn default() -> Self {
-        WarpedMotionParamsUnion::Abgd(WarpedMotionParamsStruct{..Default::default()})
+        WarpedMotionParamsUnion::Abgd(WarpedMotionParamsStruct {
+            ..Default::default()
+        })
     }
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 #[repr(C)]
 pub struct WarpedMotionParams {
     t: WarpedMotionType,
@@ -120,7 +122,7 @@ pub struct WarpedMotionParams {
     u: WarpedMotionParamsUnion,
 }
 
-#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum PixelLayout {
     PIXEL_LAYOUT_I400, // monochrome
@@ -135,7 +137,7 @@ impl Default for PixelLayout {
     }
 }
 
-#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum FrameType {
     FRAME_TYPE_KEY = 0,    // Key Intra frame
@@ -150,7 +152,7 @@ impl Default for FrameType {
     }
 }
 
-#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum ColorPrimaries {
     COLOR_PRI_BT709 = 1,
@@ -173,7 +175,7 @@ impl Default for ColorPrimaries {
     }
 }
 
-#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum TransferCharacteristics {
     TRC_BT709 = 1,
@@ -201,7 +203,7 @@ impl Default for TransferCharacteristics {
     }
 }
 
-#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum MatrixCoefficients {
     MC_IDENTITY = 0,
@@ -226,7 +228,7 @@ impl Default for MatrixCoefficients {
     }
 }
 
-#[derive(Copy, Clone, Debug, FromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
 #[repr(C)]
 pub enum ChromaSamplePosition {
     CHR_UNKNOWN = 0,
@@ -241,15 +243,14 @@ impl Default for ChromaSamplePosition {
     }
 }
 
-
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct ContentLightLevel {
     max_content_light_level: isize,
     max_frame_average_light_level: isize,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct MasteringDisplay {
     // 0.16 fixed point
@@ -262,7 +263,7 @@ pub struct MasteringDisplay {
     min_luminance: u32,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct SequenceHeaderOperatingPoint {
     major_level: isize,
@@ -274,7 +275,7 @@ pub struct SequenceHeaderOperatingPoint {
     display_model_param_present: isize,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct SequenceHeaderOperatingParameterInfo {
     decoder_buffer_delay: isize,
@@ -290,19 +291,19 @@ pub struct SequenceHeader {
      * 1 for 8-10 bits/component 4:4:4; 2 for 4:2:2 at any bits/component,
      * or 12 bits/component at any chroma subsampling.
      */
-    profile: isize,
+    pub(crate) profile: u32,
     /**
      * Maximum dimensions for this stream. In non-scalable streams, these
      * are often the actual dimensions of the stream, although that is not
      * a normative requirement.
      */
-    max_width: isize,
-    max_height: isize,
-    layout: PixelLayout,          // format of the picture
-    pri: ColorPrimaries,          // color primaries (av1)
-    trc: TransferCharacteristics, // transfer characteristics (av1)
-    mtrx: MatrixCoefficients,     // matrix coefficients (av1)
-    chr: ChromaSamplePosition,    // chroma sample position (av1)
+    pub(crate) max_width: u32,
+    pub(crate) max_height: u32,
+    pub(crate) layout: PixelLayout,          // format of the picture
+    pub(crate) pri: ColorPrimaries,          // color primaries (av1)
+    pub(crate) trc: TransferCharacteristics, // transfer characteristics (av1)
+    pub(crate) mtrx: MatrixCoefficients,     // matrix coefficients (av1)
+    pub(crate) chr: ChromaSamplePosition,    // chroma sample position (av1)
     /**
      * 0, 1 and 2 mean 8, 10 or 12 bits/component, respectively. This is not
      * exactly the same as 'hbd' from the spec; the spec's hbd distinguishes
@@ -310,56 +311,56 @@ pub struct SequenceHeader {
      * (twelve_bit) to distinguish between 10 and 12 bits/component. To get
      * the spec's hbd, use !!our_hbd, and to get twelve_bit, use hbd == 2.
      */
-    hbd: isize,
+    pub(crate) hbd: u32,
     /**
      * Pixel data uses JPEG pixel range ([0,255] for 8bits) instead of
      * MPEG pixel range ([16,235] for 8bits luma, [16,240] for 8bits chroma).
      */
-    color_range: isize,
+    pub(crate) color_range: u32,
 
-    num_operating_points: usize,
-    operating_points: [SequenceHeaderOperatingPoint; MAX_OPERATING_POINTS],
+    pub(crate) num_operating_points: usize,
+    pub(crate) operating_points: [SequenceHeaderOperatingPoint; MAX_OPERATING_POINTS],
 
-    still_picture: isize,
-    reduced_still_picture_header: isize,
-    timing_info_present: isize,
-    num_units_in_tick: isize,
-    time_scale: isize,
-    equal_picture_interval: isize,
-    num_ticks_per_picture: usize,
-    decoder_model_info_present: isize,
-    encoder_decoder_buffer_delay_length: isize,
-    num_units_in_decoding_tick: isize,
-    buffer_removal_delay_length: isize,
-    frame_presentation_delay_length: isize,
-    display_model_info_present: isize,
-    width_n_bits: isize,
-    height_n_bits: isize,
-    frame_id_numbers_present: isize,
-    delta_frame_id_n_bits: isize,
-    frame_id_n_bits: isize,
-    sb128: isize,
-    filter_intra: isize,
-    intra_edge_filter: isize,
-    inter_intra: isize,
-    masked_compound: isize,
-    warped_motion: isize,
-    dual_filter: isize,
-    order_hint: isize,
-    jnt_comp: isize,
-    ref_frame_mvs: isize,
-    screen_content_tools: AdaptiveBoolean,
-    force_integer_mv: AdaptiveBoolean,
-    order_hint_n_bits: isize,
-    super_res: isize,
-    cdef: isize,
-    restoration: isize,
-    ss_hor: isize,
-    ss_ver: isize,
-    monochrome: isize,
-    color_description_present: isize,
-    separate_uv_delta_q: isize,
-    film_grain_present: isize,
+    pub(crate) still_picture: bool,
+    pub(crate) reduced_still_picture_header: bool,
+    pub(crate) timing_info_present: isize,
+    pub(crate) num_units_in_tick: isize,
+    pub(crate) time_scale: isize,
+    pub(crate) equal_picture_interval: isize,
+    pub(crate) num_ticks_per_picture: usize,
+    pub(crate) decoder_model_info_present: isize,
+    pub(crate) encoder_decoder_buffer_delay_length: isize,
+    pub(crate) num_units_in_decoding_tick: isize,
+    pub(crate) buffer_removal_delay_length: isize,
+    pub(crate) frame_presentation_delay_length: isize,
+    pub(crate) display_model_info_present: isize,
+    pub(crate) width_n_bits: isize,
+    pub(crate) height_n_bits: isize,
+    pub(crate) frame_id_numbers_present: isize,
+    pub(crate) delta_frame_id_n_bits: isize,
+    pub(crate) frame_id_n_bits: isize,
+    pub(crate) sb128: isize,
+    pub(crate) filter_intra: isize,
+    pub(crate) intra_edge_filter: isize,
+    pub(crate) inter_intra: isize,
+    pub(crate) masked_compound: isize,
+    pub(crate) warped_motion: isize,
+    pub(crate) dual_filter: isize,
+    pub(crate) order_hint: isize,
+    pub(crate) jnt_comp: isize,
+    pub(crate) ref_frame_mvs: isize,
+    pub(crate) screen_content_tools: AdaptiveBoolean,
+    pub(crate) force_integer_mv: AdaptiveBoolean,
+    pub(crate) order_hint_n_bits: isize,
+    pub(crate) super_res: isize,
+    pub(crate) cdef: isize,
+    pub(crate) restoration: isize,
+    pub(crate) ss_hor: isize,
+    pub(crate) ss_ver: isize,
+    pub(crate) monochrome: isize,
+    pub(crate) color_description_present: isize,
+    pub(crate) separate_uv_delta_q: isize,
+    pub(crate) film_grain_present: isize,
 
     // SequenceHeaders of the same sequence are required to be
     // bit-identical until this offset. See 7.5 "Ordering of OBUs":
@@ -367,16 +368,82 @@ pub struct SequenceHeader {
     //   sequence_header_obu must be bit-identical each time the
     //   sequence header appears except for the contents of
     //   operating_parameters_info.
-    operating_parameter_info: [SequenceHeaderOperatingParameterInfo; MAX_OPERATING_POINTS],
+    pub(crate) operating_parameter_info: [SequenceHeaderOperatingParameterInfo; MAX_OPERATING_POINTS],
 }
 
-impl SequenceHeader{
-    pub fn new() -> Self{
-        SequenceHeader{..Default::default()}
+impl SequenceHeader {
+    pub fn new() -> Self {
+        SequenceHeader {
+            ..Default::default()
+        }
     }
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+impl PartialEq for SequenceHeader {
+    fn eq(&self, other: &Self) -> bool {
+        self.profile == other.profile
+            && self.max_width == other.max_width
+            && self.max_height == other.max_height
+            && self.layout == other.layout
+            && self.pri == other.pri
+            && self.trc == other.trc
+            && self.mtrx == other.mtrx
+            && self.chr == other.chr
+            && self.hbd == other.hbd
+            && self.color_range == other.color_range
+            && self.num_operating_points == other.num_operating_points
+            && self.operating_points == other.operating_points
+            && self.still_picture == other.still_picture
+            && self.reduced_still_picture_header == other.reduced_still_picture_header
+            && self.timing_info_present == other.timing_info_present
+            && self.num_units_in_tick == other.num_units_in_tick
+            && self.time_scale == other.time_scale
+            && self.equal_picture_interval == other.equal_picture_interval
+            && self.num_ticks_per_picture == other.num_ticks_per_picture
+            && self.decoder_model_info_present == other.decoder_model_info_present
+            && self.encoder_decoder_buffer_delay_length == other.encoder_decoder_buffer_delay_length
+            && self.num_units_in_decoding_tick == other.num_units_in_decoding_tick
+            && self.buffer_removal_delay_length == other.buffer_removal_delay_length
+            && self.frame_presentation_delay_length == other.frame_presentation_delay_length
+            && self.display_model_info_present == other.display_model_info_present
+            && self.width_n_bits == other.width_n_bits
+            && self.height_n_bits == other.height_n_bits
+            && self.frame_id_numbers_present == other.frame_id_numbers_present
+            && self.delta_frame_id_n_bits == other.delta_frame_id_n_bits
+            && self.frame_id_n_bits == other.frame_id_n_bits
+            && self.sb128 == other.sb128
+            && self.filter_intra == other.filter_intra
+            && self.intra_edge_filter == other.intra_edge_filter
+            && self.inter_intra == other.inter_intra
+            && self.masked_compound == other.masked_compound
+            && self.warped_motion == other.warped_motion
+            && self.dual_filter == other.dual_filter
+            && self.order_hint == other.order_hint
+            && self.jnt_comp == other.jnt_comp
+            && self.ref_frame_mvs == other.ref_frame_mvs
+            && self.screen_content_tools == other.screen_content_tools
+            && self.force_integer_mv == other.force_integer_mv
+            && self.order_hint_n_bits == other.order_hint_n_bits
+            && self.super_res == other.super_res
+            && self.cdef == other.cdef
+            && self.restoration == other.restoration
+            && self.ss_hor == other.ss_hor
+            && self.ss_ver == other.ss_ver
+            && self.monochrome == other.monochrome
+            && self.color_description_present == other.color_description_present
+            && self.separate_uv_delta_q == other.separate_uv_delta_q
+            && self.film_grain_present == other.film_grain_present
+
+        // SequenceHeaders of the same sequence are required to be
+        // bit-identical until this offset. See 7.5 "Ordering of OBUs":
+        //   Within a particular coded video sequence, the contents of
+        //   sequence_header_obu must be bit-identical each time the
+        //   sequence header appears except for the contents of
+        //   operating_parameters_info.
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct SegmentationData {
     delta_q: isize,
@@ -389,7 +456,7 @@ pub struct SegmentationData {
     globalmv: isize,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct SegmentationDataSet {
     d: [SegmentationData; MAX_SEGMENTS],
@@ -397,14 +464,14 @@ pub struct SegmentationDataSet {
     last_active_segid: isize,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct LoopfilterModeRefDeltas {
     mode_delta: [isize; 2],
     ref_delta: [isize; TOTAL_REFS_PER_FRAME],
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct FilmGrainData {
     seed: u16,
@@ -426,7 +493,7 @@ pub struct FilmGrainData {
     clip_to_restricted_range: isize,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct FilmGrain {
     present: isize,
@@ -434,13 +501,13 @@ pub struct FilmGrain {
     data: FilmGrainData,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct FrameHeaderOperatingPoint {
     buffer_removal_time: isize,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct SuperResolution {
     width_scale_denominator: isize,
@@ -485,6 +552,32 @@ impl Default for Tiling {
     }
 }
 
+impl PartialEq for Tiling {
+    fn eq(&self, other: &Self) -> bool {
+        self.uniform == other.uniform
+            && self.n_bytes == other.n_bytes
+            && self.min_log2_cols == other.min_log2_cols
+            && self.max_log2_cols == other.max_log2_cols
+            && self.log2_cols == other.log2_cols
+            && self.cols == other.cols
+            && self.min_log2_rows == other.min_log2_rows
+            && self.max_log2_rows == other.max_log2_rows
+            && self.log2_rows == other.log2_rows
+            && self.rows == other.rows
+            && self.update == other.update
+            && self
+                .col_start_sb
+                .iter()
+                .zip(other.col_start_sb.iter())
+                .all(|(a, b)| a == b)
+            && self
+                .row_start_sb
+                .iter()
+                .zip(other.row_start_sb.iter())
+                .all(|(a, b)| a == b)
+    }
+}
+
 impl fmt::Debug for Tiling {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -520,7 +613,7 @@ impl fmt::Debug for Tiling {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Quant {
     yac: isize,
@@ -535,7 +628,7 @@ pub struct Quant {
     qm_v: isize,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Segmentation {
     enabled: isize,
@@ -547,14 +640,14 @@ pub struct Segmentation {
     qidx: [isize; MAX_SEGMENTS],
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Q {
     present: isize,
     res_log2: isize,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct LF {
     present: isize,
@@ -562,14 +655,14 @@ pub struct LF {
     multi: isize,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Delta {
     q: Q,
     lf: LF,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct LoopFilter {
     level_y: [isize; 2],
@@ -581,7 +674,7 @@ pub struct LoopFilter {
     sharpness: isize,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct CDEF {
     damping: isize,
@@ -590,14 +683,14 @@ pub struct CDEF {
     uv_strength: [isize; MAX_CDEF_STRENGTHS],
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Restoration {
     t: [RestorationType; 3],
     unit_size: [isize; 2],
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct FrameHeader {
     frame_type: FrameType, // type of the picture
@@ -652,8 +745,10 @@ pub struct FrameHeader {
     gmv: [WarpedMotionParams; REFS_PER_FRAME],
 }
 
-impl FrameHeader{
-    pub fn new() -> Self{
-        FrameHeader{..Default::default()}
+impl FrameHeader {
+    pub fn new() -> Self {
+        FrameHeader {
+            ..Default::default()
+        }
     }
 }

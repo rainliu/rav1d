@@ -11,8 +11,40 @@ use std::rc::Rc;
 use crate::headers::SequenceHeader;
 use num_traits::FromPrimitive;
 
-fn parse_seq_hdr(gb: &mut GetBits, seq_hdr: &mut SequenceHeader, operating_point_idc: u32) -> io::Result<u32> {
-    rav1d_log!("hello world");
+#[inline(always)]
+fn check_error(condition: bool, msg: &str) -> io::Result<()> {
+    if condition {
+        Err(io::Error::new(io::ErrorKind::InvalidInput, msg))
+    } else {
+        Ok(())
+    }
+}
+
+fn parse_seq_hdr(
+    gb: &mut GetBits,
+    hdr: &mut SequenceHeader,
+    operating_point_idc: u32,
+) -> io::Result<u32> {
+    let init_bit_pos = gb.get_bits_pos();
+
+    hdr.profile = gb.get_bits(3);
+    check_error(hdr.profile > 2, "hdr.profile > 2")?;
+    rav1d_log!(
+        "SEQHDR: post-profile: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
+
+    hdr.still_picture = gb.get_bits(1) != 0;
+    hdr.reduced_still_picture_header = gb.get_bits(1) != 0;
+    check_error(
+        hdr.reduced_still_picture_header && !hdr.still_picture,
+        "hdr.reduced_still_picture_header && !hdr.still_picture",
+    )?;
+    rav1d_log!(
+        "SEQHDR: post-stillpicture_flags: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
+
     Ok(operating_point_idc)
 }
 
@@ -81,7 +113,32 @@ impl<T: Pixel> Context<T> {
         match FromPrimitive::from_u32(obu_type) {
             Some(ObuType::OBU_SEQ_HDR) => {
                 let mut seq_hdr = Rc::new(SequenceHeader::new());
-                self.operating_point_idc = parse_seq_hdr(&mut gb, Rc::get_mut(&mut seq_hdr).unwrap(), self.operating_point_idc)?;
+                self.operating_point_idc = parse_seq_hdr(
+                    &mut gb,
+                    Rc::get_mut(&mut seq_hdr).unwrap(),
+                    self.operating_point_idc,
+                )?;
+                gb.check_overrun(init_bit_pos as u32, len as u32)?;
+                if self.seq_hdr.is_none() {
+                    self.frame_hdr = None;
+                } else if seq_hdr == *self.seq_hdr.as_ref().unwrap() {
+                    self.frame_hdr = None;
+                    //TODO:
+                    /*
+                    c->mastering_display = NULL;
+                    c->content_light = NULL;
+                    dav1d_ref_dec(&c->mastering_display_ref);
+                    dav1d_ref_dec(&c->content_light_ref);
+                    for (int i = 0; i < 8; i++) {
+                        if (c->refs[i].p.p.data[0])
+                            dav1d_thread_picture_unref(&c->refs[i].p);
+                        dav1d_ref_dec(&c->refs[i].segmap);
+                        dav1d_ref_dec(&c->refs[i].refmvs);
+                        dav1d_cdf_thread_unref(&c->cdf[i]);
+                    }
+                    */
+                }
+                self.seq_hdr = Some(seq_hdr);
             }
             Some(ObuType::OBU_REDUNDANT_FRAME_HDR) => {}
             _ => {
