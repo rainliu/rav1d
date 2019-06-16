@@ -8,6 +8,7 @@ use crate::util::Pixel;
 use std::rc::Rc;
 use std::slice;
 use std::{cmp, io};
+use std::vec::Vec;
 
 use crate::headers::SequenceHeader;
 use num_traits::FromPrimitive;
@@ -1205,6 +1206,36 @@ fn parse_frame_hdr(
     Ok(())
 }
 
+fn parse_tile_hdr(
+    gb: &mut GetBits,
+    tile: &mut Vec<TileGroup>,
+    frame_hdr: &FrameHeader,
+) -> io::Result<()> {
+    let mut have_tile_pos = false;
+    let n_tiles = frame_hdr.tiling.cols * frame_hdr.tiling.rows;
+    if n_tiles > 1 {
+        have_tile_pos = gb.get_bits(1) != 0;
+    }
+    let tg = if have_tile_pos {
+        let n_bits = (frame_hdr.tiling.log2_cols + frame_hdr.tiling.log2_rows) as u32;
+        TileGroup {
+            start: gb.get_bits(n_bits) as usize,
+            end: gb.get_bits(n_bits) as usize,
+        }
+    } else {
+        TileGroup {
+            start: 0,
+            end: n_tiles as usize - 1,
+        }
+    };
+    tile.push(tg);
+
+    // Align to the next byte boundary and check for overrun.
+    gb.bytealign_get_bits();
+
+    Ok(())
+}
+
 impl<T: Pixel> Context<T> {
     pub fn parse_obus(&mut self, offset: usize, global: bool) -> io::Result<usize> {
         let data = &self.packet.as_ref().unwrap().data[offset..];
@@ -1318,13 +1349,8 @@ impl<T: Pixel> Context<T> {
                     {
                         parse_frame_hdr(&mut gb, seq_hdr, Rc::make_mut(frame_hdr))?;
 
-                        /*
-                        // TODO
-                            for (int n = 0; n < c->n_tile_data; n++)
-                                dav1d_data_unref_internal(&c->tile[n].data);
-                            c->n_tile_data = 0;
-                            c->n_tiles = 0;
-                        */
+                        self.tile = vec![];
+
                         if t != ObuType::OBU_FRAME {
                             // This is actually a frame header OBU so read the
                             // trailing bit and check for overrun.
@@ -1366,17 +1392,33 @@ impl<T: Pixel> Context<T> {
                         break;
                     }
                     check_error(self.frame_hdr.is_none(), "frame_hdr.is_none()")?;
-                    /*
-                    //TODO:
-                        if (c->n_tile_data_alloc < c->n_tile_data + 1) {
-                            if ((c->n_tile_data + 1) > INT_MAX / (int)sizeof(*c->tile)) goto error;
-                            struct Dav1dTileGroup *tile = realloc(c->tile, (c->n_tile_data + 1) * sizeof(*c->tile));
-                            if (!tile) goto error;
-                            c->tile = tile;
-                            memset(c->tile + c->n_tile_data, 0, sizeof(*c->tile));
-                            c->n_tile_data_alloc = c->n_tile_data + 1;
-                        }
-                    */
+
+                    parse_tile_hdr(&mut gb, &mut self.tile, self.frame_hdr.as_ref().unwrap());
+
+                    gb.check_for_overrun(init_bit_pos as u32, len as u32)?;
+
+                    // The current bit position is a multiple of 8 (because we
+                    // just aligned it) and less than 8*pkt_bytelen because
+                    // otherwise the overrun check would have fired.
+                    let bit_pos  = gb.get_bits_pos() as usize;
+                    debug_assert!((bit_pos & 7) == 0);
+                    debug_assert!(pkt_bytelen >= (bit_pos >> 3));
+                    /*dav1d_data_ref(&c->tile[c->n_tile_data].data, in);
+                    c->tile[c->n_tile_data].data.data += bit_pos >> 3;
+                    c->tile[c->n_tile_data].data.sz = pkt_bytelen - (bit_pos >> 3);
+                    // ensure tile groups are in order and sane, see 6.10.1
+                    if (c->tile[c->n_tile_data].start > c->tile[c->n_tile_data].end ||
+                        c->tile[c->n_tile_data].start != c->n_tiles)
+                    {
+                        for (int i = 0; i <= c->n_tile_data; i++)
+                            dav1d_data_unref_internal(&c->tile[i].data);
+                        c->n_tile_data = 0;
+                        c->n_tiles = 0;
+                        goto error;
+                    }
+                    c->n_tiles += 1 + c->tile[c->n_tile_data].end -
+                                      c->tile[c->n_tile_data].start;
+                    c->n_tile_data++;*/
                 }
             }),
             _ => {

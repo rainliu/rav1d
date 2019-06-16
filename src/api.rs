@@ -5,6 +5,7 @@ use crate::util::Pixel;
 
 use std::rc::Rc;
 use std::{cmp, fmt, io};
+use std::vec::Vec;
 
 use arg_enum_proc_macro::ArgEnum;
 use num_derive::*;
@@ -160,11 +161,18 @@ pub(crate) struct RefState{
     refpoc:[u32; 7],
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
+#[repr(C)]
+pub struct TileGroup{
+    pub start: usize,
+    pub end: usize,
+}
+
 pub struct Context<T: Pixel> {
     pub(crate) seq_hdr: Option<Rc<SequenceHeader>>,
     pub(crate) frame_hdr: Option<Rc<FrameHeader>>,
+    pub(crate) tile: Vec<TileGroup>,
     //pub(crate) refs: [RefState; 8],
-
 
     pub(crate) apply_grain: bool,
     pub(crate) operating_point: usize,
@@ -183,6 +191,8 @@ impl<T: Pixel> Context<T> {
         Context {
             seq_hdr: None,
             frame_hdr: None,
+            tile: vec![],
+
             apply_grain: false,
             operating_point: 0,
             operating_point_idc: 0,
