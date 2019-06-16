@@ -130,32 +130,6 @@ impl Default for Config {
     }
 }
 
-impl Config {
-    pub fn new_context<T: Pixel>(&self) -> Context<T> {
-        //assert!(8 * std::mem::size_of::<T>() >= self.enc.bit_depth, "The Pixel u{} does not match the Config bit_depth {}",
-        //        8 * std::mem::size_of::<T>(), self.enc.bit_depth);
-
-        //let pool = rayon::ThreadPoolBuilder::new().num_threads(self.threads).build().unwrap();
-
-        let mut config = self.clone();
-
-        // FIXME: inter unsupported with 4:2:2 and 4:4:4 chroma sampling
-        /*let chroma_sampling = config.chroma_sampling;
-        let keyframe_only = chroma_sampling == ChromaSampling::Cs444 ||
-            chroma_sampling == ChromaSampling::Cs422;
-        if keyframe_only {
-            config.max_key_frame_interval = 1;
-            config.min_key_frame_interval = 1;
-        }
-        // FIXME: tx partition for intra not supported for chroma 422
-        if chroma_sampling == ChromaSampling::Cs422 {
-            config.speed_settings.rdo_tx_decision = false;
-        }*/
-
-        Context::new(config)
-    }
-}
-
 // reference/entropy state
 pub(crate) struct RefState{
     //Dav1dThreadPicture p;
@@ -164,16 +138,9 @@ pub(crate) struct RefState{
     refpoc:[u32; 7],
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Default)]
-#[repr(C)]
-pub struct TileGroup{
-    pub start: i32,
-    pub end: i32,
-}
-
 pub struct Context<T: Pixel> {
     pub(crate) n_fc: usize,
-    pub(crate) fc: Vec<FrameContext>,
+    pub(crate) fcs: Vec<FrameContext>,
 
     pub(crate) seq_hdr: Option<Rc<SequenceHeader>>,
     pub(crate) frame_hdr: Option<Rc<FrameHeader>>,
@@ -189,15 +156,16 @@ pub struct Context<T: Pixel> {
     pub(crate) drain: bool,
     pub(crate) frame: Option<Frame<T>>,
     pub(crate) packet: Option<Packet>,
-    config: Config,
     //pub(crate) pool: rayon::ThreadPool,
 }
 
 impl<T: Pixel> Context<T> {
-    pub fn new(config: Config) -> Self {
+    pub fn new(cfg: &Config) -> Self {
+        debug_assert!(cfg.n_frame_threads > 0);
+
         Context {
-            n_fc: 0,
-            fc: vec![],
+            n_fc: cfg.n_frame_threads,
+            fcs: vec![FrameContext::default(); cfg.n_frame_threads],
 
             seq_hdr: None,
             frame_hdr: None,
@@ -212,7 +180,6 @@ impl<T: Pixel> Context<T> {
             drain: false,
             frame: None,
             packet: None,
-            config: config,
         }
     }
 

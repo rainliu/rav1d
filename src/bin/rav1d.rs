@@ -34,14 +34,14 @@ pub fn parse_cli() -> CLISettings {
                 .help("Set the frame threadpool size")
                 .long("frame_threads")
                 .takes_value(true)
-                .default_value("0"),
+                .default_value("1"),
         )
         .arg(
             Arg::with_name("TILE_THREADS")
                 .help("Set the tile threadpool size")
                 .long("tile_threads")
                 .takes_value(true)
-                .default_value("0"),
+                .default_value("1"),
         )
         // INPUT/OUTPUT
         .arg(
@@ -175,7 +175,7 @@ fn main() -> io::Result<()> {
     }
 
     // TODO: use seq header probe to find out pixel type
-    let mut ctx: Context<u8> = cfg.new_context();
+    let mut ctx: Context<u8> = Context::new(&cfg);
 
     let mut progress = common::ProgressInfo::new(
         Rational {

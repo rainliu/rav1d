@@ -2,6 +2,7 @@
 
 pub mod api;
 pub mod context;
+pub mod decode;
 pub mod frame;
 pub mod getbits;
 pub mod headers;

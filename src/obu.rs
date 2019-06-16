@@ -4,6 +4,7 @@ use crate::getbits::*;
 use crate::headers::*;
 use crate::levels::*;
 use crate::util::Pixel;
+use crate::internal::*;
 
 use std::rc::Rc;
 use std::slice;
@@ -1219,11 +1220,15 @@ fn parse_tile_hdr(
     let tg = if have_tile_pos {
         let n_bits = (frame_hdr.tiling.log2_cols + frame_hdr.tiling.log2_rows) as u32;
         TileGroup {
+            data_offset: 0,
+            data_sz: 0,
             start: gb.get_bits(n_bits) as i32,
             end: gb.get_bits(n_bits) as i32,
         }
     } else {
         TileGroup {
+            data_offset: 0,
+            data_sz: 0,
             start: 0,
             end: n_tiles - 1,
         }
@@ -1402,17 +1407,17 @@ impl<T: Pixel> Context<T> {
 
                     gb.check_for_overrun(init_bit_pos as u32, len as u32)?;
 
-                    // The current bit position is a multiple of 8 (because we
-                    // just aligned it) and less than 8*pkt_bytelen because
-                    // otherwise the overrun check would have fired.
-                    let bit_pos = gb.get_bits_pos() as usize;
-                    debug_assert!((bit_pos & 7) == 0);
-                    debug_assert!(pkt_bytelen >= (bit_pos >> 3));
-                    /*dav1d_data_ref(&c->tile[c->n_tile_data].data, in);
-                    c->tile[c->n_tile_data].data.data += bit_pos >> 3;
-                    c->tile[c->n_tile_data].data.sz = pkt_bytelen - (bit_pos >> 3);*/
-                    // ensure tile groups are in order and sane, see 6.10.1
-                    if let Some(last) = self.tile_groups.last() {
+                    if let Some(last) = self.tile_groups.last_mut() {
+                        // The current bit position is a multiple of 8 (because we
+                        // just aligned it) and less than 8*pkt_bytelen because
+                        // otherwise the overrun check would have fired.
+                        let bit_pos = gb.get_bits_pos() as usize;
+                        debug_assert!((bit_pos & 7) == 0);
+                        debug_assert!(pkt_bytelen >= (bit_pos >> 3));
+                        //dav1d_data_ref(&c->tile[c->n_tile_data].data, in);
+                        last.data_offset = bit_pos >> 3;
+                        last.data_sz = pkt_bytelen - (bit_pos >> 3);
+                        // ensure tile groups are in order and sane, see 6.10.1
                         check_error(
                             last.start > last.end || last.start != self.n_tiles,
                             "last.start > last.end || last.start != self.n_tiles",
@@ -1442,9 +1447,12 @@ impl<T: Pixel> Context<T> {
         if let (Some(seq_hdr), Some(frame_hdr)) = (self.seq_hdr.as_ref(), self.frame_hdr.as_ref()) {
             if frame_hdr.show_existing_frame {
                 unimplemented!();
-            }else{
+            } else {
                 check_error(self.tile_groups.is_empty(), "tile_groups.is_empty()")?;
-                self.frame = Some(Frame::new(352, 288, ChromaSampling::Cs420));
+
+                self.submit_frame()?;
+
+                //self.frame = Some(Frame::new(352, 288, ChromaSampling::Cs420));
                 self.n_tiles = 0;
             }
         }
