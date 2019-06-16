@@ -5,6 +5,7 @@ pub mod context;
 pub mod frame;
 pub mod getbits;
 pub mod headers;
+pub mod internal;
 pub mod levels;
 pub mod macros;
 pub mod obu;

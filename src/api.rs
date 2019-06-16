@@ -2,6 +2,7 @@ use crate::frame::Frame;
 use crate::headers::*;
 use crate::obu::*;
 use crate::util::Pixel;
+use crate::internal::*;
 
 use std::rc::Rc;
 use std::{cmp, fmt, io};
@@ -108,7 +109,8 @@ pub struct Point {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Config {
-    pub threads: usize, // The number of threads in the threadpool.
+    pub n_frame_threads: usize,
+    pub n_tile_threads: usize,
     pub apply_grain: isize,
     pub operating_point: isize, // select an operating point for scalable AV1 bitstreams (0 - 31)
     pub all_layers: isize,      // output all spatial layers of a scalable AV1 biststream
@@ -118,7 +120,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            threads: 1,
+            n_frame_threads: 1,
+            n_tile_threads: 1,
             apply_grain: 0,
             operating_point: 0,
             all_layers: 1, // just until the tests are adjusted
@@ -169,6 +172,9 @@ pub struct TileGroup{
 }
 
 pub struct Context<T: Pixel> {
+    pub(crate) n_fc: usize,
+    pub(crate) fc: Vec<FrameContext>,
+
     pub(crate) seq_hdr: Option<Rc<SequenceHeader>>,
     pub(crate) frame_hdr: Option<Rc<FrameHeader>>,
     pub(crate) tile_groups: Vec<TileGroup>,
@@ -190,6 +196,9 @@ pub struct Context<T: Pixel> {
 impl<T: Pixel> Context<T> {
     pub fn new(config: Config) -> Self {
         Context {
+            n_fc: 0,
+            fc: vec![],
+
             seq_hdr: None,
             frame_hdr: None,
             tile_groups: vec![],

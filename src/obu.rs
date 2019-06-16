@@ -1430,8 +1430,7 @@ impl<T: Pixel> Context<T> {
             Some(ObuType::OBU_METADATA) => {
                 unimplemented!();
             }
-            Some(ObuType::OBU_PADDING) |
-            Some(ObuType::OBU_TD) => {
+            Some(ObuType::OBU_PADDING) | Some(ObuType::OBU_TD) => {
                 // ignore OBUs we don't care about
             }
             _ => {
@@ -1440,7 +1439,16 @@ impl<T: Pixel> Context<T> {
             }
         }
 
-        //self.frame = Some(Frame::new(352, 288, ChromaSampling::Cs420));
+        if let (Some(seq_hdr), Some(frame_hdr)) = (self.seq_hdr.as_ref(), self.frame_hdr.as_ref()) {
+            if frame_hdr.show_existing_frame {
+                unimplemented!();
+            }else{
+                check_error(self.tile_groups.is_empty(), "tile_groups.is_empty()")?;
+                self.frame = Some(Frame::new(352, 288, ChromaSampling::Cs420));
+                self.n_tiles = 0;
+            }
+        }
+
         Ok(len + init_byte_pos)
     }
 }

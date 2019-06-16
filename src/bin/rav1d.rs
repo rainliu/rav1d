@@ -13,7 +13,8 @@ pub struct CLISettings {
     pub limit: usize,
     pub skip: usize,
     pub verbose: bool,
-    pub threads: usize,
+    pub frame_threads: usize,
+    pub tile_threads: usize,
 }
 
 pub fn parse_cli() -> CLISettings {
@@ -29,9 +30,16 @@ pub fn parse_cli() -> CLISettings {
         )
         // THREADS
         .arg(
-            Arg::with_name("THREADS")
-                .help("Set the threadpool size")
-                .long("threads")
+            Arg::with_name("FRAME_THREADS")
+                .help("Set the frame threadpool size")
+                .long("frame_threads")
+                .takes_value(true)
+                .default_value("0"),
+        )
+        .arg(
+            Arg::with_name("TILE_THREADS")
+                .help("Set the tile threadpool size")
+                .long("tile_threads")
                 .takes_value(true)
                 .default_value("0"),
         )
@@ -86,9 +94,13 @@ pub fn parse_cli() -> CLISettings {
         limit: matches.value_of("LIMIT").unwrap().parse().unwrap(),
         skip: matches.value_of("SKIP").unwrap().parse().unwrap(),
         verbose: matches.is_present("VERBOSE"),
-        threads: matches
-            .value_of("THREADS")
-            .map(|v| v.parse().expect("Threads must be an integer"))
+        frame_threads: matches
+            .value_of("FRAME_THREADS")
+            .map(|v| v.parse().expect("Frame threads must be an integer"))
+            .unwrap(),
+        tile_threads: matches
+            .value_of("TILE_THREADS")
+            .map(|v| v.parse().expect("Tile threads must be an integer"))
             .unwrap(),
     }
 }
@@ -134,8 +146,7 @@ fn process_frame(
             }
             Err(CodecStatus::Failure) => {
                 panic!("Failed to decode video");
-            }
-            //Err(CodecStatus::Decoded) => {}
+            } //Err(CodecStatus::Decoded) => {}
         }
     }
     Some(frame_summaries)
@@ -144,7 +155,8 @@ fn process_frame(
 fn main() -> io::Result<()> {
     let mut cli = parse_cli();
     let cfg = Config {
-        threads: cli.threads,
+        n_frame_threads: cli.frame_threads,
+        n_tile_threads: cli.tile_threads,
         ..Default::default()
     };
 
