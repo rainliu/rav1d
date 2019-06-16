@@ -7,8 +7,8 @@ use crate::util::Pixel;
 
 use std::rc::Rc;
 use std::slice;
-use std::{cmp, io};
 use std::vec::Vec;
+use std::{cmp, io};
 
 use crate::headers::SequenceHeader;
 use num_traits::FromPrimitive;
@@ -1219,13 +1219,13 @@ fn parse_tile_hdr(
     let tg = if have_tile_pos {
         let n_bits = (frame_hdr.tiling.log2_cols + frame_hdr.tiling.log2_rows) as u32;
         TileGroup {
-            start: gb.get_bits(n_bits) as usize,
-            end: gb.get_bits(n_bits) as usize,
+            start: gb.get_bits(n_bits) as i32,
+            end: gb.get_bits(n_bits) as i32,
         }
     } else {
         TileGroup {
             start: 0,
-            end: n_tiles as usize - 1,
+            end: n_tiles - 1,
         }
     };
     tile.push(tg);
@@ -1349,7 +1349,8 @@ impl<T: Pixel> Context<T> {
                     {
                         parse_frame_hdr(&mut gb, seq_hdr, Rc::make_mut(frame_hdr))?;
 
-                        self.tile = vec![];
+                        self.tile_groups = vec![];
+                        self.n_tiles = 0;
 
                         if t != ObuType::OBU_FRAME {
                             // This is actually a frame header OBU so read the
@@ -1393,34 +1394,46 @@ impl<T: Pixel> Context<T> {
                     }
                     check_error(self.frame_hdr.is_none(), "frame_hdr.is_none()")?;
 
-                    parse_tile_hdr(&mut gb, &mut self.tile, self.frame_hdr.as_ref().unwrap());
+                    parse_tile_hdr(
+                        &mut gb,
+                        &mut self.tile_groups,
+                        self.frame_hdr.as_ref().unwrap(),
+                    );
 
                     gb.check_for_overrun(init_bit_pos as u32, len as u32)?;
 
                     // The current bit position is a multiple of 8 (because we
                     // just aligned it) and less than 8*pkt_bytelen because
                     // otherwise the overrun check would have fired.
-                    let bit_pos  = gb.get_bits_pos() as usize;
+                    let bit_pos = gb.get_bits_pos() as usize;
                     debug_assert!((bit_pos & 7) == 0);
                     debug_assert!(pkt_bytelen >= (bit_pos >> 3));
                     /*dav1d_data_ref(&c->tile[c->n_tile_data].data, in);
                     c->tile[c->n_tile_data].data.data += bit_pos >> 3;
-                    c->tile[c->n_tile_data].data.sz = pkt_bytelen - (bit_pos >> 3);
+                    c->tile[c->n_tile_data].data.sz = pkt_bytelen - (bit_pos >> 3);*/
                     // ensure tile groups are in order and sane, see 6.10.1
-                    if (c->tile[c->n_tile_data].start > c->tile[c->n_tile_data].end ||
-                        c->tile[c->n_tile_data].start != c->n_tiles)
-                    {
-                        for (int i = 0; i <= c->n_tile_data; i++)
+                    if let Some(last) = self.tile_groups.last() {
+                        check_error(
+                            last.start > last.end || last.start != self.n_tiles,
+                            "last.start > last.end || last.start != self.n_tiles",
+                        )?;
+                        /*for i = 0; i <= c->n_tile_data; i++)
                             dav1d_data_unref_internal(&c->tile[i].data);
-                        c->n_tile_data = 0;
-                        c->n_tiles = 0;
-                        goto error;
+                            c->n_tile_data = 0;
+                            c->n_tiles = 0;
+                            goto error;
+                        }*/
+                        self.n_tiles += 1 + last.end - last.start;
                     }
-                    c->n_tiles += 1 + c->tile[c->n_tile_data].end -
-                                      c->tile[c->n_tile_data].start;
-                    c->n_tile_data++;*/
                 }
             }),
+            Some(ObuType::OBU_METADATA) => {
+                unimplemented!();
+            }
+            Some(ObuType::OBU_PADDING) |
+            Some(ObuType::OBU_TD) => {
+                // ignore OBUs we don't care about
+            }
             _ => {
                 // print a warning but don't fail for unknown types
                 rav1d_log!("Unknown OBU type {} of size {}\n", obu_type, len);

@@ -164,14 +164,15 @@ pub(crate) struct RefState{
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct TileGroup{
-    pub start: usize,
-    pub end: usize,
+    pub start: i32,
+    pub end: i32,
 }
 
 pub struct Context<T: Pixel> {
     pub(crate) seq_hdr: Option<Rc<SequenceHeader>>,
     pub(crate) frame_hdr: Option<Rc<FrameHeader>>,
-    pub(crate) tile: Vec<TileGroup>,
+    pub(crate) tile_groups: Vec<TileGroup>,
+    pub(crate) n_tiles: i32,
     //pub(crate) refs: [RefState; 8],
 
     pub(crate) apply_grain: bool,
@@ -191,7 +192,8 @@ impl<T: Pixel> Context<T> {
         Context {
             seq_hdr: None,
             frame_hdr: None,
-            tile: vec![],
+            tile_groups: vec![],
+            n_tiles: 0,
 
             apply_grain: false,
             operating_point: 0,
