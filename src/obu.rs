@@ -1116,89 +1116,91 @@ fn parse_frame_hdr(
     }
     rav1d_log!("HDR: post-gmv: off={}\n", gb.get_bits_pos() - init_bit_pos);
 
+    hdr.film_grain.present =
+        seqhdr.film_grain_present && (hdr.show_frame || hdr.showable_frame) && gb.get_bits(1) != 0;
+    if hdr.film_grain.present {
+        unimplemented!();
     /*
-    hdr.film_grain.present = seqhdr.film_grain_present &&
-                              (hdr.show_frame || hdr.showable_frame) &&
-                              gb.get_bits( 1);
-    if (hdr.film_grain.present) {
-        const unsigned seed = gb.get_bits( 16);
-        hdr.film_grain.update = hdr.frame_type != DAV1D_FRAME_TYPE_INTER || gb.get_bits( 1);
-        if (!hdr.film_grain.update) {
-            const int refidx = gb.get_bits( 3);
-            int i;
-            for (i = 0; i < 7; i++)
-                if (hdr.refidx[i] == refidx)
-                    break;
-            if (i == 7 || !c->refs[refidx].p.p.frame_hdr)  goto error;
-            hdr.film_grain.data = c->refs[refidx].p.p.frame_hdr.film_grain.data;
-            hdr.film_grain.data.seed = seed;
-        } else {
-            Dav1dFilmGrainData *const fgd = &hdr.film_grain.data;
-            fgd->seed = seed;
-
-            fgd->num_y_points = gb.get_bits( 4);
-            if (fgd->num_y_points > 14) goto error;
-            for (int i = 0; i < fgd->num_y_points; i++) {
-                fgd->y_points[i][0] = gb.get_bits( 8);
-                if (i && fgd->y_points[i - 1][0] >= fgd->y_points[i][0])
-                    goto error;
-                fgd->y_points[i][1] = gb.get_bits( 8);
+    let seed = gb.get_bits( 16) as u16;
+    hdr.film_grain.update = hdr.frame_type != FrameType::FRAME_TYPE_INTER || gb.get_bits( 1) != 0;
+    if !hdr.film_grain.update {
+        let refidx = gb.get_bits( 3) as i32;
+        let mut i = 0;
+        while i < 7 {
+            if hdr.refidx[i] == refidx {
+                break;
             }
-
-            fgd->chroma_scaling_from_luma =
-                !seqhdr.monochrome && gb.get_bits( 1);
-            if (seqhdr.monochrome || fgd->chroma_scaling_from_luma ||
-                (seqhdr.ss_ver == 1 && seqhdr.ss_hor == 1 && !fgd->num_y_points))
-            {
-                fgd->num_uv_points[0] = fgd->num_uv_points[1] = 0;
-            } else for (int pl = 0; pl < 2; pl++) {
-                fgd->num_uv_points[pl] = gb.get_bits( 4);
-                if (fgd->num_uv_points[pl] > 10) goto error;
-                for (int i = 0; i < fgd->num_uv_points[pl]; i++) {
-                    fgd->uv_points[pl][i][0] = gb.get_bits( 8);
-                    if (i && fgd->uv_points[pl][i - 1][0] >= fgd->uv_points[pl][i][0])
-                        goto error;
-                    fgd->uv_points[pl][i][1] = gb.get_bits( 8);
-                }
-            }
-
-            if (seqhdr.ss_hor == 1 && seqhdr.ss_ver == 1 &&
-                !!fgd->num_uv_points[0] != !!fgd->num_uv_points[1])
-            {
-                goto error;
-            }
-
-            fgd->scaling_shift = gb.get_bits( 2) + 8;
-            fgd->ar_coeff_lag = gb.get_bits( 2);
-            const int num_y_pos = 2 * fgd->ar_coeff_lag * (fgd->ar_coeff_lag + 1);
-            if (fgd->num_y_points)
-                for (int i = 0; i < num_y_pos; i++)
-                    fgd->ar_coeffs_y[i] = gb.get_bits( 8) - 128;
-            for (int pl = 0; pl < 2; pl++)
-                if (fgd->num_uv_points[pl] || fgd->chroma_scaling_from_luma) {
-                    const int num_uv_pos = num_y_pos + !!fgd->num_y_points;
-                    for (int i = 0; i < num_uv_pos; i++)
-                        fgd->ar_coeffs_uv[pl][i] = gb.get_bits( 8) - 128;
-                }
-            fgd->ar_coeff_shift = gb.get_bits( 2) + 6;
-            fgd->grain_scale_shift = gb.get_bits( 2);
-            for (int pl = 0; pl < 2; pl++)
-                if (fgd->num_uv_points[pl]) {
-                    fgd->uv_mult[pl] = gb.get_bits( 8) - 128;
-                    fgd->uv_luma_mult[pl] = gb.get_bits( 8) - 128;
-                    fgd->uv_offset[pl] = gb.get_bits( 9) - 256;
-                }
-            fgd->overlap_flag = gb.get_bits( 1);
-            fgd->clip_to_restricted_range = gb.get_bits( 1);
+            i+=1;
         }
+        if (i == 7 || !c->refs[refidx].p.p.frame_hdr)  goto error;
+        hdr.film_grain.data = c->refs[refidx].p.p.frame_hdr.film_grain.data;
+        hdr.film_grain.data.seed = seed;
     } else {
-        memset(&hdr.film_grain.data, 0, sizeof(hdr.film_grain.data));
+        Dav1dFilmGrainData *const fgd = &hdr.film_grain.data;
+        fgd->seed = seed;
+
+        fgd->num_y_points = gb.get_bits( 4);
+        if (fgd->num_y_points > 14) goto error;
+        for (int i = 0; i < fgd->num_y_points; i++) {
+            fgd->y_points[i][0] = gb.get_bits( 8);
+            if (i && fgd->y_points[i - 1][0] >= fgd->y_points[i][0])
+                goto error;
+            fgd->y_points[i][1] = gb.get_bits( 8);
+        }
+
+        fgd->chroma_scaling_from_luma =
+            !seqhdr.monochrome && gb.get_bits( 1);
+        if (seqhdr.monochrome || fgd->chroma_scaling_from_luma ||
+            (seqhdr.ss_ver == 1 && seqhdr.ss_hor == 1 && !fgd->num_y_points))
+        {
+            fgd->num_uv_points[0] = fgd->num_uv_points[1] = 0;
+        } else for (int pl = 0; pl < 2; pl++) {
+            fgd->num_uv_points[pl] = gb.get_bits( 4);
+            if (fgd->num_uv_points[pl] > 10) goto error;
+            for (int i = 0; i < fgd->num_uv_points[pl]; i++) {
+                fgd->uv_points[pl][i][0] = gb.get_bits( 8);
+                if (i && fgd->uv_points[pl][i - 1][0] >= fgd->uv_points[pl][i][0])
+                    goto error;
+                fgd->uv_points[pl][i][1] = gb.get_bits( 8);
+            }
+        }
+
+        if (seqhdr.ss_hor == 1 && seqhdr.ss_ver == 1 &&
+            !!fgd->num_uv_points[0] != !!fgd->num_uv_points[1])
+        {
+            goto error;
+        }
+
+        fgd->scaling_shift = gb.get_bits( 2) + 8;
+        fgd->ar_coeff_lag = gb.get_bits( 2);
+        const int num_y_pos = 2 * fgd->ar_coeff_lag * (fgd->ar_coeff_lag + 1);
+        if (fgd->num_y_points)
+            for (int i = 0; i < num_y_pos; i++)
+                fgd->ar_coeffs_y[i] = gb.get_bits( 8) - 128;
+        for (int pl = 0; pl < 2; pl++)
+            if (fgd->num_uv_points[pl] || fgd->chroma_scaling_from_luma) {
+                const int num_uv_pos = num_y_pos + !!fgd->num_y_points;
+                for (int i = 0; i < num_uv_pos; i++)
+                    fgd->ar_coeffs_uv[pl][i] = gb.get_bits( 8) - 128;
+            }
+        fgd->ar_coeff_shift = gb.get_bits( 2) + 6;
+        fgd->grain_scale_shift = gb.get_bits( 2);
+        for (int pl = 0; pl < 2; pl++)
+            if (fgd->num_uv_points[pl]) {
+                fgd->uv_mult[pl] = gb.get_bits( 8) - 128;
+                fgd->uv_luma_mult[pl] = gb.get_bits( 8) - 128;
+                fgd->uv_offset[pl] = gb.get_bits( 9) - 256;
+            }
+        fgd->overlap_flag = gb.get_bits( 1);
+        fgd->clip_to_restricted_range = gb.get_bits( 1);
+    }*/
+    } else {
+        // TODO: hdr.film_grain.data, 0, sizeof(hdr.film_grain.data));
     }
-
-    rav1d_log!("HDR: post-filmgrain: off={}\n",
-           gb.get_bits_pos() - init_bit_pos);
-
-    */
+    rav1d_log!(
+        "HDR: post-filmgrain: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
 
     Ok(())
 }

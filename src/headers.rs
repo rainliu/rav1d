@@ -506,8 +506,8 @@ pub struct FilmGrainData {
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct FilmGrain {
-    pub(crate) present: isize,
-    pub(crate) update: isize,
+    pub(crate) present: bool,
+    pub(crate) update: bool,
     pub(crate) data: FilmGrainData,
 }
 
@@ -731,7 +731,7 @@ pub struct FrameHeader {
     pub(crate) have_render_size: bool,
     pub(crate) allow_intrabc: bool,
     pub(crate) frame_ref_short_signaling: isize,
-    pub(crate) refidx: [isize; REFS_PER_FRAME],
+    pub(crate) refidx: [i32; REFS_PER_FRAME],
     pub(crate) hp: bool,
     pub(crate) subpel_filter_mode: FilterMode,
     pub(crate) switchable_motion_mode: isize,
