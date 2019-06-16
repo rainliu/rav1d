@@ -79,7 +79,7 @@ impl<'a> GetBits<'a> {
 
     // Check that we haven't read more than obu_len bytes from the buffer
     // since init_bit_pos.
-    pub fn check_overrun(&self, init_bit_pos: u32, obu_len: u32) -> io::Result<()> {
+    pub fn check_for_overrun(&self, init_bit_pos: u32, obu_len: u32) -> io::Result<()> {
         // Make sure we haven't actually read past the end of the gb buffer
         if self.error {
             return Err(io::Error::new(

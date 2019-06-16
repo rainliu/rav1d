@@ -1272,13 +1272,14 @@ impl<T: Pixel> Context<T> {
                 let mut seq_hdr = Rc::new(SequenceHeader::default());
                 self.operating_point_idc =
                     parse_seq_hdr(&mut gb, Rc::make_mut(&mut seq_hdr), self.operating_point)?;
-                gb.check_overrun(init_bit_pos as u32, len as u32)?;
+                gb.check_for_overrun(init_bit_pos as u32, len as u32)?;
                 if self.seq_hdr.is_none() {
                     self.frame_hdr = None;
                 } else if seq_hdr == *self.seq_hdr.as_ref().unwrap() {
                     self.frame_hdr = None;
-                    //TODO:
+
                     /*
+                    //TODO
                     c->mastering_display = NULL;
                     c->content_light = NULL;
                     dav1d_ref_dec(&c->mastering_display_ref);
@@ -1295,24 +1296,87 @@ impl<T: Pixel> Context<T> {
                 self.seq_hdr = Some(seq_hdr);
             }
             Some(t @ ObuType::OBU_REDUNDANT_FRAME_HDR)
+            | Some(t @ ObuType::OBU_FRAME_HDR)
             | Some(t @ ObuType::OBU_FRAME)
-            | Some(t @ ObuType::OBU_FRAME_HDR) => matched_block!({
+            | Some(t @ ObuType::OBU_TILE_GRP) => matched_block!({
                 if t == ObuType::OBU_REDUNDANT_FRAME_HDR && self.frame_hdr.is_some() {
                     break;
                 }
-                if global {
-                    break;
+                if t == ObuType::OBU_REDUNDANT_FRAME_HDR
+                    || t == ObuType::OBU_FRAME_HDR
+                    || t == ObuType::OBU_FRAME
+                {
+                    if global {
+                        break;
+                    }
+                    check_error(self.seq_hdr.is_none(), "seq_hdr.is_none()")?;
+                    if self.frame_hdr.is_none() {
+                        self.frame_hdr = Some(Rc::new(FrameHeader::default()));
+                    }
+                    if let (Some(seq_hdr), Some(frame_hdr)) =
+                        (self.seq_hdr.as_ref(), self.frame_hdr.as_mut())
+                    {
+                        parse_frame_hdr(&mut gb, seq_hdr, Rc::make_mut(frame_hdr))?;
+
+                        /*
+                        // TODO
+                            for (int n = 0; n < c->n_tile_data; n++)
+                                dav1d_data_unref_internal(&c->tile[n].data);
+                            c->n_tile_data = 0;
+                            c->n_tiles = 0;
+                        */
+                        if t != ObuType::OBU_FRAME {
+                            // This is actually a frame header OBU so read the
+                            // trailing bit and check for overrun.
+                            gb.get_bits(1);
+                            gb.check_for_overrun(init_bit_pos as u32, len as u32)?;
+                            break;
+                        }
+
+                        // OBU_FRAMEs shouldn't be signalled with show_existing_frame
+                        check_error(
+                            frame_hdr.show_existing_frame,
+                            "OBU_FRAMEs shouldn't be signalled with show_existing_frame",
+                        )?;
+                        // TODO: set ctx->frame_hdr = NULL;
+
+                        check_error(
+                            self.frame_size_limit != 0
+                                && frame_hdr.width[1] as usize * frame_hdr.height as usize
+                                    > self.frame_size_limit,
+                            "Frame size exceeds limit",
+                        )?;
+                        /*{
+                            rav1d_log("Frame size %dx%d exceeds limit %u\n", c->frame_hdr->width[1],
+                                      c->frame_hdr->height, self.frame_size_limit);
+                            c->frame_hdr = NULL;
+                            return DAV1D_ERR(ERANGE);
+                        }*/
+
+                        // This is the frame header at the start of a frame OBU.
+                        // There's no trailing bit at the end to skip, but we do need
+                        // to align to the next byte.
+                        gb.bytealign_get_bits();
+                    }
                 }
-                check_error(self.seq_hdr.is_none(), "seq_hdr.is_none()")?;
-                if self.frame_hdr.is_none() {
-                    self.frame_hdr = Some(Rc::new(FrameHeader::default()));
-                }
-                if let Some(frame_hdr) = self.frame_hdr.as_mut() {
-                    parse_frame_hdr(
-                        &mut gb,
-                        self.seq_hdr.as_ref().unwrap(),
-                        Rc::make_mut(frame_hdr),
-                    )?;
+
+                // fall-through
+                if t == ObuType::OBU_FRAME || t == ObuType::OBU_TILE_GRP {
+                    if global {
+                        break;
+                    }
+                    check_error(self.frame_hdr.is_none(), "frame_hdr.is_none()")?;
+                    /*
+                    //TODO:
+                        if (c->n_tile_data_alloc < c->n_tile_data + 1) {
+                            if ((c->n_tile_data + 1) > INT_MAX / (int)sizeof(*c->tile)) goto error;
+                            struct Dav1dTileGroup *tile = realloc(c->tile, (c->n_tile_data + 1) * sizeof(*c->tile));
+                            if (!tile) goto error;
+                            c->tile = tile;
+                            memset(c->tile + c->n_tile_data, 0, sizeof(*c->tile));
+                            c->n_tile_data_alloc = c->n_tile_data + 1;
+                        }
+                    */
                 }
             }),
             _ => {
