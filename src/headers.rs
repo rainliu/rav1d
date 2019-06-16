@@ -112,12 +112,22 @@ impl Default for WarpedMotionParamsUnion {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(C)]
 pub struct WarpedMotionParams {
     pub(crate) t: WarpedMotionType,
     pub(crate) matrix: [i32; 6],
     pub(crate) u: WarpedMotionParamsUnion,
+}
+
+impl Default for WarpedMotionParams{
+    fn default()  -> Self {
+        WarpedMotionParams{
+            matrix: [0, 0, 1 << 16, 0, 0, 1 << 16],
+            t: WarpedMotionType::default(),
+            u: WarpedMotionParamsUnion::default(),
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, FromPrimitive)]
@@ -677,17 +687,17 @@ pub struct LoopFilter {
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct CDEF {
-    pub(crate) damping: isize,
-    pub(crate) n_bits: isize,
-    pub(crate) y_strength: [isize; MAX_CDEF_STRENGTHS],
-    pub(crate) uv_strength: [isize; MAX_CDEF_STRENGTHS],
+    pub(crate) damping: i32,
+    pub(crate) n_bits: i32,
+    pub(crate) y_strength: [i32; MAX_CDEF_STRENGTHS],
+    pub(crate) uv_strength: [i32; MAX_CDEF_STRENGTHS],
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Restoration {
     pub(crate) t: [RestorationType; 3],
-    pub(crate) unit_size: [isize; 2],
+    pub(crate) unit_size: [i32; 2],
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
@@ -722,7 +732,7 @@ pub struct FrameHeader {
     pub(crate) allow_intrabc: bool,
     pub(crate) frame_ref_short_signaling: isize,
     pub(crate) refidx: [isize; REFS_PER_FRAME],
-    pub(crate) hp: isize,
+    pub(crate) hp: bool,
     pub(crate) subpel_filter_mode: FilterMode,
     pub(crate) switchable_motion_mode: isize,
     pub(crate) use_ref_frame_mvs: isize,
@@ -736,11 +746,17 @@ pub struct FrameHeader {
     pub(crate) cdef: CDEF,
     pub(crate) restoration: Restoration,
     pub(crate) txfm_mode: TxfmMode,
-    pub(crate) switchable_comp_refs: isize,
-    pub(crate) skip_mode_allowed: isize,
-    pub(crate) skip_mode_enabled: isize,
+    pub(crate) switchable_comp_refs: bool,
+    pub(crate) skip_mode_allowed: bool,
+    pub(crate) skip_mode_enabled: bool,
     pub(crate) skip_mode_refs: [isize; 2],
-    pub(crate) warp_motion: isize,
-    pub(crate) reduced_txtp_set: isize,
+    pub(crate) warp_motion: bool,
+    pub(crate) reduced_txtp_set: bool,
     pub(crate) gmv: [WarpedMotionParams; REFS_PER_FRAME],
+}
+
+impl FrameHeader{
+    pub(crate) fn frame_is_intra(&self) -> bool {
+        (self.frame_type as u8 & 1) != 0
+    }
 }

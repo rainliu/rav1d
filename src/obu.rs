@@ -468,7 +468,7 @@ fn parse_frame_hdr(
     } else {
         hdr.force_integer_mv = AdaptiveBoolean::OFF;
     }
-    if (hdr.frame_type as u8 & 1) == 0 {
+    if !hdr.frame_is_intra() {
         hdr.force_integer_mv = AdaptiveBoolean::ON;
     }
 
@@ -494,7 +494,7 @@ fn parse_frame_hdr(
     } else {
         0
     };
-    hdr.primary_ref_frame = if !hdr.error_resilient_mode && (hdr.frame_type as u32 & 1) != 0 {
+    hdr.primary_ref_frame = if !hdr.error_resilient_mode && hdr.frame_is_intra() {
         gb.get_bits(3)
     } else {
         PRIMARY_REF_NONE as u32
@@ -898,87 +898,99 @@ fn parse_frame_hdr(
     }
     rav1d_log!("HDR: post-lpf: off={}\n", gb.get_bits_pos() - init_bit_pos);
 
-    /*
     // cdef
-    if (!hdr.all_lossless && seqhdr.cdef && !hdr.allow_intrabc) {
-        hdr.cdef.damping = gb.get_bits( 2) + 3;
-        hdr.cdef.n_bits = gb.get_bits( 2);
-        for (int i = 0; i < (1 << hdr.cdef.n_bits); i++) {
-            hdr.cdef.y_strength[i] = gb.get_bits( 6);
-            if (!seqhdr.monochrome)
-                hdr.cdef.uv_strength[i] = gb.get_bits( 6);
+    if !hdr.all_lossless && seqhdr.cdef && !hdr.allow_intrabc {
+        hdr.cdef.damping = gb.get_bits(2) as i32 + 3;
+        hdr.cdef.n_bits = gb.get_bits(2) as i32;
+        for i in 0..(1 << hdr.cdef.n_bits) {
+            hdr.cdef.y_strength[i] = gb.get_bits(6) as i32;
+            if !seqhdr.monochrome {
+                hdr.cdef.uv_strength[i] = gb.get_bits(6) as i32;
+            }
         }
     } else {
         hdr.cdef.n_bits = 0;
         hdr.cdef.y_strength[0] = 0;
         hdr.cdef.uv_strength[0] = 0;
     }
-
-    rav1d_log!("HDR: post-cdef: off={}\n",
-           gb.get_bits_pos() - init_bit_pos);
-
+    rav1d_log!("HDR: post-cdef: off={}\n", gb.get_bits_pos() - init_bit_pos);
 
     // restoration
-    if ((!hdr.all_lossless || hdr.super_res.enabled) &&
-        seqhdr.restoration && !hdr.allow_intrabc)
-    {
-        hdr.restoration.type[0] = gb.get_bits( 2);
-        if (!seqhdr.monochrome) {
-            hdr.restoration.type[1] = gb.get_bits( 2);
-            hdr.restoration.type[2] = gb.get_bits( 2);
+    if (!hdr.all_lossless || hdr.super_res.enabled) && seqhdr.restoration && !hdr.allow_intrabc {
+        hdr.restoration.t[0] = FromPrimitive::from_u32(gb.get_bits(2)).unwrap();
+        if !seqhdr.monochrome {
+            hdr.restoration.t[1] = FromPrimitive::from_u32(gb.get_bits(2)).unwrap();
+            hdr.restoration.t[2] = FromPrimitive::from_u32(gb.get_bits(2)).unwrap();
         } else {
-            hdr.restoration.type[1] =
-            hdr.restoration.type[2] = DAV1D_RESTORATION_NONE;
+            hdr.restoration.t[1] = RestorationType::RESTORATION_NONE;
+            hdr.restoration.t[2] = RestorationType::RESTORATION_NONE;
         }
 
-        if (hdr.restoration.type[0] || hdr.restoration.type[1] ||
-            hdr.restoration.type[2])
+        if hdr.restoration.t[0] != RestorationType::RESTORATION_NONE
+            || hdr.restoration.t[1] != RestorationType::RESTORATION_NONE
+            || hdr.restoration.t[2] != RestorationType::RESTORATION_NONE
         {
             // Log2 of the restoration unit size.
-            hdr.restoration.unit_size[0] = 6 + seqhdr.sb128;
-            if (gb.get_bits( 1)) {
-                hdr.restoration.unit_size[0]++;
-                if (!seqhdr.sb128)
-                    hdr.restoration.unit_size[0] += gb.get_bits( 1);
+            hdr.restoration.unit_size[0] = 6 + seqhdr.sb128 as i32;
+            if gb.get_bits(1) != 0 {
+                hdr.restoration.unit_size[0] += 1;
+                if !seqhdr.sb128 {
+                    hdr.restoration.unit_size[0] += gb.get_bits(1) as i32;
+                }
             }
             hdr.restoration.unit_size[1] = hdr.restoration.unit_size[0];
-            if ((hdr.restoration.type[1] || hdr.restoration.type[2]) &&
-                seqhdr.ss_hor == 1 && seqhdr.ss_ver == 1)
+            if (hdr.restoration.t[1] != RestorationType::RESTORATION_NONE
+                || hdr.restoration.t[2] != RestorationType::RESTORATION_NONE)
+                && seqhdr.ss_hor == 1
+                && seqhdr.ss_ver == 1
             {
-                hdr.restoration.unit_size[1] -= gb.get_bits( 1);
+                hdr.restoration.unit_size[1] -= gb.get_bits(1) as i32;
             }
         } else {
             hdr.restoration.unit_size[0] = 8;
         }
     } else {
-        hdr.restoration.type[0] = DAV1D_RESTORATION_NONE;
-        hdr.restoration.type[1] = DAV1D_RESTORATION_NONE;
-        hdr.restoration.type[2] = DAV1D_RESTORATION_NONE;
+        hdr.restoration.t[0] = RestorationType::RESTORATION_NONE;
+        hdr.restoration.t[1] = RestorationType::RESTORATION_NONE;
+        hdr.restoration.t[2] = RestorationType::RESTORATION_NONE;
     }
+    rav1d_log!(
+        "HDR: post-restoration: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
 
-    rav1d_log!("HDR: post-restoration: off={}\n",
-           gb.get_bits_pos() - init_bit_pos);
+    hdr.txfm_mode = if hdr.all_lossless {
+        TxfmMode::TX_4X4_ONLY
+    } else if gb.get_bits(1) != 0 {
+        TxfmMode::TX_SWITCHABLE
+    } else {
+        TxfmMode::TX_LARGEST
+    };
+    rav1d_log!(
+        "HDR: post-txfmmode: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
 
+    hdr.switchable_comp_refs = if hdr.frame_is_intra() {
+        gb.get_bits(1) != 0
+    } else {
+        false
+    };
+    rav1d_log!(
+        "HDR: post-refmode: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
 
-    hdr.txfm_mode = hdr.all_lossless ? DAV1D_TX_4X4_ONLY :
-                     gb.get_bits( 1) ? DAV1D_TX_SWITCHABLE : DAV1D_TX_LARGEST;
-
-    rav1d_log!("HDR: post-txfmmode: off={}\n",
-           gb.get_bits_pos() - init_bit_pos);
-
-    hdr.switchable_comp_refs = hdr.frame_type & 1 ? gb.get_bits( 1) : 0;
-
-    rav1d_log!("HDR: post-refmode: off={}\n",
-           gb.get_bits_pos() - init_bit_pos);
-
-    hdr.skip_mode_allowed = 0;
-    if (hdr.switchable_comp_refs && hdr.frame_type & 1 && seqhdr.order_hint) {
-        const unsigned poc = hdr.frame_offset;
-        unsigned off_before[2] = { 0xFFFFFFFF, 0xFFFFFFFF };
-        int off_after = -1;
-        int off_before_idx[2], off_after_idx;
+    hdr.skip_mode_allowed = false;
+    if hdr.switchable_comp_refs && hdr.frame_is_intra() && seqhdr.order_hint {
+        unimplemented!();
+        /*let poc = hdr.frame_offset;
+        let off_before: [u32;2] = [ 0xFFFFFFFF, 0xFFFFFFFF ];
+        let off_after = -1;
+        let mut off_before_idx:[i32;2];
+        let mut off_after_idx:i32;
         off_before_idx[0] = 0;
-        for (int i = 0; i < 7; i++) {
+        for i in 0..7 {
             if (!c->refs[hdr.refidx[i]].p.p.data[0]) return DAV1D_ERR(EINVAL);
             const unsigned refpoc = c->refs[hdr.refidx[i]].p.p.frame_hdr.frame_offset;
 
@@ -1020,79 +1032,91 @@ fn parse_frame_hdr(
             hdr.skip_mode_refs[0] = imin(off_before_idx[0], off_before_idx[1]);
             hdr.skip_mode_refs[1] = imax(off_before_idx[0], off_before_idx[1]);
             hdr.skip_mode_allowed = 1;
-        }
+        }*/
     }
-    hdr.skip_mode_enabled = hdr.skip_mode_allowed ? gb.get_bits( 1) : 0;
+    hdr.skip_mode_enabled = if hdr.skip_mode_allowed {
+        gb.get_bits(1) != 0
+    } else {
+        false
+    };
+    rav1d_log!(
+        "HDR: post-extskip: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
 
-    rav1d_log!("HDR: post-extskip: off={}\n",
-           gb.get_bits_pos() - init_bit_pos);
+    hdr.warp_motion = !hdr.error_resilient_mode
+        && hdr.frame_is_intra()
+        && seqhdr.warped_motion
+        && gb.get_bits(1) != 0;
+    rav1d_log!(
+        "HDR: post-warpmotionbit: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
 
-    hdr.warp_motion = !hdr.error_resilient_mode && hdr.frame_type & 1 &&
-        seqhdr.warped_motion && gb.get_bits( 1);
+    hdr.reduced_txtp_set = gb.get_bits(1) != 0;
+    rav1d_log!(
+        "HDR: post-reducedtxtpset: off={}\n",
+        gb.get_bits_pos() - init_bit_pos
+    );
 
-    rav1d_log!("HDR: post-warpmotionbit: off={}\n",
-           gb.get_bits_pos() - init_bit_pos);
+    for i in 0..7 {
+        hdr.gmv[i] = WarpedMotionParams::default();
+    }
 
-    hdr.reduced_txtp_set = gb.get_bits( 1);
-
-    rav1d_log!("HDR: post-reducedtxtpset: off={}\n",
-           gb.get_bits_pos() - init_bit_pos);
-
-
-    for (int i = 0; i < 7; i++)
-        hdr.gmv[i] = dav1d_default_wm_params;
-
-    if (hdr.frame_type & 1) {
-        for (int i = 0; i < 7; i++) {
-            hdr.gmv[i].type = !gb.get_bits( 1) ? DAV1D_WM_TYPE_IDENTITY :
-                                gb.get_bits( 1) ? DAV1D_WM_TYPE_ROT_ZOOM :
-                                gb.get_bits( 1) ? DAV1D_WM_TYPE_TRANSLATION :
-                                                  DAV1D_WM_TYPE_AFFINE;
-
-            if (hdr.gmv[i].type == DAV1D_WM_TYPE_IDENTITY) continue;
-
-            const Dav1dWarpedMotionParams *ref_gmv;
-            if (hdr.primary_ref_frame == DAV1D_PRIMARY_REF_NONE) {
-                ref_gmv = &dav1d_default_wm_params;
+    if hdr.frame_is_intra() {
+        for i in 0..7 {
+            hdr.gmv[i].t = if gb.get_bits(1) == 0 {
+                WarpedMotionType::WM_TYPE_IDENTITY
+            } else if gb.get_bits(1) != 0 {
+                WarpedMotionType::WM_TYPE_ROT_ZOOM
+            } else if gb.get_bits(1) != 0 {
+                WarpedMotionType::WM_TYPE_TRANSLATION
             } else {
-                const int pri_ref = hdr.refidx[hdr.primary_ref_frame];
-                if (!c->refs[pri_ref].p.p.frame_hdr) return DAV1D_ERR(EINVAL);
-                ref_gmv = &c->refs[pri_ref].p.p.frame_hdr.gmv[i];
-            }
-            int32_t *const mat = hdr.gmv[i].matrix;
-            const int32_t *const ref_mat = ref_gmv->matrix;
-            int bits, shift;
+                WarpedMotionType::WM_TYPE_AFFINE
+            };
 
-            if (hdr.gmv[i].type >= DAV1D_WM_TYPE_ROT_ZOOM) {
-                mat[2] = (1 << 16) + 2 *
-                    dav1d_get_bits_subexp(gb, (ref_mat[2] - (1 << 16)) >> 1, 12);
-                mat[3] = 2 * dav1d_get_bits_subexp(gb, ref_mat[3] >> 1, 12);
+            if hdr.gmv[i].t == WarpedMotionType::WM_TYPE_IDENTITY {
+                continue;
+            }
+
+            let mut ref_gmv = &mut WarpedMotionParams::default();
+            if hdr.primary_ref_frame != PRIMARY_REF_NONE as u32 {
+                unimplemented!();
+                /*let pri_ref = hdr.refidx[hdr.primary_ref_frame as usize];
+                if (!c->refs[pri_ref].p.p.frame_hdr) return DAV1D_ERR(EINVAL);
+                ref_gmv = &c->refs[pri_ref].p.p.frame_hdr.gmv[i];*/
+            }
+            let mat = &mut hdr.gmv[i].matrix;
+            let ref_mat = &mut ref_gmv.matrix;
+            let bits: u32;
+            let shift: u32;
+
+            if hdr.gmv[i].t as u32 >= WarpedMotionType::WM_TYPE_ROT_ZOOM as u32 {
+                mat[2] = (1 << 16) + 2 * gb.get_bits_subexp((ref_mat[2] - (1 << 16)) >> 1, 12);
+                mat[3] = 2 * gb.get_bits_subexp(ref_mat[3] >> 1, 12);
 
                 bits = 12;
                 shift = 10;
             } else {
-                bits = 9 - !hdr.hp;
-                shift = 13 + !hdr.hp;
+                bits = 9 - (!hdr.hp) as u32;
+                shift = 13 + (!hdr.hp) as u32;
             }
 
-            if (hdr.gmv[i].type == DAV1D_WM_TYPE_AFFINE) {
-                mat[4] = 2 * dav1d_get_bits_subexp(gb, ref_mat[4] >> 1, 12);
-                mat[5] = (1 << 16) + 2 *
-                    dav1d_get_bits_subexp(gb, (ref_mat[5] - (1 << 16)) >> 1, 12);
+            if hdr.gmv[i].t == WarpedMotionType::WM_TYPE_AFFINE {
+                mat[4] = 2 * gb.get_bits_subexp(ref_mat[4] >> 1, 12);
+                mat[5] = (1 << 16) + 2 * gb.get_bits_subexp((ref_mat[5] - (1 << 16)) >> 1, 12);
             } else {
                 mat[4] = -mat[3];
                 mat[5] = mat[2];
             }
 
-            mat[0] = dav1d_get_bits_subexp(gb, ref_mat[0] >> shift, bits) * (1 << shift);
-            mat[1] = dav1d_get_bits_subexp(gb, ref_mat[1] >> shift, bits) * (1 << shift);
+            mat[0] = gb.get_bits_subexp(ref_mat[0] >> shift as i32, bits) * (1 << shift as i32);
+            mat[1] = gb.get_bits_subexp(ref_mat[1] >> shift as i32, bits) * (1 << shift as i32);
         }
     }
+    rav1d_log!("HDR: post-gmv: off={}\n", gb.get_bits_pos() - init_bit_pos);
 
-    rav1d_log!("HDR: post-gmv: off={}\n",
-           gb.get_bits_pos() - init_bit_pos);
-
-
+    /*
     hdr.film_grain.present = seqhdr.film_grain_present &&
                               (hdr.show_frame || hdr.showable_frame) &&
                               gb.get_bits( 1);
