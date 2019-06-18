@@ -98,7 +98,7 @@ pub struct FrameContext {
     pub(crate) sb_shift: i32,
     pub(crate) sb_step: i32,
     pub(crate) sr_sb128w: i32,
-    pub(crate) dq: AlignedArray<[[[u16;2 /* dc/ac */];3 /* plane */];MAX_SEGMENTS]>,
+    pub(crate) dq: AlignedArray<[[[u16; 2]; 3]; MAX_SEGMENTS]>,
     //pub(crate) qm: [[[u8;2 /* is_1d */]; RectTxfmSize::N_RECT_TX_SIZES as usize];3 /* plane */],
     pub(crate) a: Vec<BlockContext>,
     pub(crate) lf: loopfilter,
@@ -137,7 +137,7 @@ impl Default for FrameContext {
             sb_shift: 0,
             sb_step: 0,
             sr_sb128w: 0,
-            dq:UninitializedAlignedArray(),
+            dq: UninitializedAlignedArray(),
             a: vec![],
             lf: loopfilter::default(),
         }
@@ -146,22 +146,22 @@ impl Default for FrameContext {
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
-struct tiling {
+pub struct tiling {
     // in 4px units
-    col_start: i32,
-    col_end: i32,
-    row_start: i32,
-    row_end: i32,
+    pub(crate) col_start: i32,
+    pub(crate) col_end: i32,
+    pub(crate) row_start: i32,
+    pub(crate) row_end: i32,
 
     // in tile units
-    col: i32,
-    row: i32,
+    pub(crate) col: i32,
+    pub(crate) row: i32,
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct TileState {
-    tiling: tiling,
+    pub(crate) tiling: tiling,
     /*CdfContext cdf;
     MsacContext msac;
 
@@ -176,11 +176,11 @@ pub struct TileState {
     } frame_thread;
 
     uint16_t dqmem[DAV1D_MAX_SEGMENTS][3 /* plane */][2 /* dc/ac */];
-    const uint16_t (*dq)[3][2];
-    int last_qidx;
+    const uint16_t (*dq)[3][2];*/
+    pub(crate) last_qidx: i32,
 
-    int8_t last_delta_lf[4];
-    uint8_t lflvlmem[8 /* seg_id */][4 /* dir */][8 /* ref */][2 /* is_gmv */];
+    pub(crate) last_delta_lf: [i8; 4],
+    /*uint8_t lflvlmem[8 /* seg_id */][4 /* dir */][8 /* ref */][2 /* is_gmv */];
     const uint8_t (*lflvl)[4][8][2];
 
     Av1RestorationUnit *lr_ref[3];*/

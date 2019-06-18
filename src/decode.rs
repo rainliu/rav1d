@@ -39,6 +39,91 @@ fn init_quant_tables(
     }
 }
 
+fn setup_tile(
+    seq_hdr: &SequenceHeader,
+    frame_hdr: &FrameHeader,
+    data: &[u8],
+    tile_row: i32,
+    tile_col: i32,
+    tile_start_off: i32,
+    sb_shift: i32,
+    bw: i32,
+    bh: i32,
+    sr_sb128w: i32,
+    sb128w: i32,
+    n_tc: i32,
+    ts: &mut TileState,
+) {
+    let col_sb_start = frame_hdr.tiling.col_start_sb[tile_col as usize] as i32;
+    let col_sb128_start = col_sb_start >> (!seq_hdr.sb128) as i32;
+    let col_sb_end = frame_hdr.tiling.col_start_sb[tile_col as usize + 1] as i32;
+    let row_sb_start = frame_hdr.tiling.row_start_sb[tile_row as usize] as i32;
+    let row_sb_end = frame_hdr.tiling.row_start_sb[tile_row as usize + 1] as i32;
+
+    //ts.frame_thread.pal_idx = &f->frame_thread.pal_idx[tile_start_off * 2];
+    //ts.frame_thread.cf = &((int32_t *) f->frame_thread.cf)[tile_start_off * 3];
+    //dav1d_cdf_thread_copy(&ts.cdf, &f->in_cdf);
+    ts.last_qidx = frame_hdr.quant.yac;
+    ts.last_delta_lf.iter_mut().map(|x| *x = 0);
+
+    //TODO
+    //dav1d_msac_init(&ts.msac, data, sz, frame_hdr.disable_cdf_update);
+
+    ts.tiling.row = tile_row;
+    ts.tiling.col = tile_col;
+    ts.tiling.col_start = col_sb_start << sb_shift;
+    ts.tiling.col_end = cmp::min(col_sb_end << sb_shift, bw);
+    ts.tiling.row_start = row_sb_start << sb_shift;
+    ts.tiling.row_end = cmp::min(row_sb_end << sb_shift, bh);
+
+    // Reference Restoration Unit (used for exp coding)
+    let mut sb_idx;
+    let mut unit_idx;
+    if (frame_hdr.super_res.enabled) {
+        // vertical components only
+        sb_idx = (ts.tiling.row_start >> 5) * sr_sb128w;
+        unit_idx = (ts.tiling.row_start & 16) >> 3;
+    } else {
+        sb_idx = (ts.tiling.row_start >> 5) * sb128w + col_sb128_start;
+        unit_idx = ((ts.tiling.row_start & 16) >> 3) + ((ts.tiling.col_start & 16) >> 4);
+    }
+    for p in 0..3 {
+        if frame_hdr.restoration.t[p] == RestorationType::RESTORATION_NONE {
+            continue;
+        }
+
+        if frame_hdr.super_res.enabled {
+            unimplemented!();
+        /*const int ss_hor = p && f->cur.p.layout != DAV1D_PIXEL_LAYOUT_I444;
+        const int d = frame_hdr.super_res.width_scale_denominator;
+        const int unit_size_log2 = frame_hdr.restoration.unit_size[!!p];
+        const int rnd = (8 << unit_size_log2) - 1, shift = unit_size_log2 + 3;
+        const int x = ((4 * ts.tiling.col_start * d >> ss_hor) + rnd) >> shift;
+        const int px_x = x << (unit_size_log2 + ss_hor);
+        const int u_idx = unit_idx + ((px_x & 64) >> 6);
+        const int sb128x = px_x >> 7;
+        if (sb128x >= f->sr_sb128w) continue;
+        ts.lr_ref[p] = &f->lf.lr_mask[sb_idx + sb128x].lr[p][u_idx];*/
+        } else {
+            //ts.lr_ref[p] = &f->lf.lr_mask[sb_idx].lr[p][unit_idx];
+        }
+
+        /*ts.lr_ref[p]->filter_v[0] = 3;
+        ts.lr_ref[p]->filter_v[1] = -7;
+        ts.lr_ref[p]->filter_v[2] = 15;
+        ts.lr_ref[p]->filter_h[0] = 3;
+        ts.lr_ref[p]->filter_h[1] = -7;
+        ts.lr_ref[p]->filter_h[2] = 15;
+        ts.lr_ref[p]->sgr_weights[0] = -32;
+        ts.lr_ref[p]->sgr_weights[1] = 31;*/
+    }
+
+    if n_tc > 1 {
+        //TODO
+        //atomic_init(&ts.progress, row_sb_start);
+    }
+}
+
 impl<T: Pixel> Context<T> {
     pub fn submit_frame(&mut self) -> io::Result<()> {
         // TODO:
@@ -54,7 +139,7 @@ impl<T: Pixel> Context<T> {
             // single threading
             self.decode_frame(f_idx)?;
         //if ((res = dav1d_decode_frame(f)) < 0) {
-        /*let refresh_frame_flags = f->frame_hdr->refresh_frame_flags;
+        /*let refresh_frame_flags = frame_hdr.refresh_frame_flags;
         dav1d_picture_unref_internal(&c->out);
         for (int i = 0; i < 8; i++) {
             if (refresh_frame_flags & (1 << i)) {
@@ -127,7 +212,7 @@ impl<T: Pixel> Context<T> {
                 f.qm[0][j][2] = qm_tbl[frame_hdr.quant.qm_v][1][j];
             }*/
         }
-        /*for (int i = f->frame_hdr->quant.qm; i < 2; i++)
+        /*for (int i = frame_hdr.quant.qm; i < 2; i++)
         for (int tx = 0; tx < N_RECT_TX_SIZES; tx++)
             for (int pl = 0; pl < 3; pl++)
                 f->qm[i][tx][pl] = dav1d_qm_tbl[15][!!pl][tx];*/
@@ -166,8 +251,28 @@ impl<T: Pixel> Context<T> {
                     check_error(tile_sz > size, "tile_sz > size")?;
                 }
 
-                //setup_tile(&f.ts[j], f, data, tile_sz, tile_row, tile_col++,
-                //c->n_fc > 1 ? f->frame_thread.tile_start_off[j] : 0);
+                setup_tile(
+                    seq_hdr,
+                    frame_hdr,
+                    data,
+                    //tile_sz,
+                    tile_row,
+                    tile_col,
+                    if self.n_fc > 1 {
+                        /*frame_thread.tile_start_off[j]*/
+                        unimplemented!()
+                    } else {
+                        0
+                    },
+                    f.sb_shift,
+                    f.bw,
+                    f.bh,
+                    f.sr_sb128w,
+                    f.sb128w,
+                    f.n_tc,
+                    &mut f.ts[j as usize],
+                );
+                tile_col += 1;
 
                 if tile_col == frame_hdr.tiling.cols {
                     tile_col = 0;
