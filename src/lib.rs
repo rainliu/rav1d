@@ -3,6 +3,7 @@
 pub mod api;
 pub mod context;
 pub mod decode;
+pub mod dequant_tables;
 pub mod frame;
 pub mod getbits;
 pub mod headers;

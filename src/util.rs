@@ -22,6 +22,7 @@ macro_rules! cdf_size {
     ($x:expr) => ($x+1);
 }
 
+#[derive(Clone)]
 #[repr(align(32))]
 pub struct Align32;
 
@@ -37,6 +38,7 @@ pub struct Align32;
 /// let mut x: AlignedArray<[i16; 64 * 64]> = UninitializedAlignedArray();
 /// assert!(x.array.as_ptr() as usize % 16 == 0);
 /// ```
+#[derive(Clone, Default)]
 pub struct AlignedArray<ARRAY>
 {
   _alignment: [Align32; 0],
@@ -185,4 +187,15 @@ pub fn msb(x: i32) -> i32 {
 #[inline(always)]
 pub fn round_shift(value: i32, bit: usize) -> i32 {
   (value + (1 << bit >> 1)) >> bit
+}
+
+#[inline(always)]
+pub fn clip<T: PartialOrd>(v: T, min: T, max: T) -> T {
+  if v < min {
+    min
+  } else if v > max {
+    max
+  } else {
+    v
+  }
 }

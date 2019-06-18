@@ -3,7 +3,7 @@ use crate::frame::Frame;
 use crate::getbits::*;
 use crate::headers::*;
 use crate::levels::*;
-use crate::util::Pixel;
+use crate::util::*;
 use crate::internal::*;
 
 use std::rc::Rc;
@@ -32,16 +32,7 @@ fn tile_log2(sz: i32, tgt: i32) -> i32 {
     k
 }
 
-#[inline(always)]
-fn clip<T: PartialOrd>(v: T, min: T, max: T) -> T {
-    if v < min {
-        min
-    } else if v > max {
-        max
-    } else {
-        v
-    }
-}
+
 
 fn parse_seq_hdr(
     gb: &mut GetBits,

@@ -140,7 +140,7 @@ pub(crate) struct RefState{
 
 pub struct Context<T: Pixel> {
     pub(crate) n_fc: usize,
-    pub(crate) fcs: Vec<FrameContext>,
+    pub(crate) fc: Vec<FrameContext>,
 
     pub(crate) seq_hdr: Option<Rc<SequenceHeader>>,
     pub(crate) frame_hdr: Option<Rc<FrameHeader>>,
@@ -165,7 +165,7 @@ impl<T: Pixel> Context<T> {
 
         Context {
             n_fc: cfg.n_frame_threads,
-            fcs: vec![FrameContext::default(); cfg.n_frame_threads],
+            fc: vec![FrameContext::default(); cfg.n_frame_threads],
 
             seq_hdr: None,
             frame_hdr: None,
