@@ -144,7 +144,7 @@ pub struct Context<T: Pixel> {
 
     pub(crate) seq_hdr: Option<Rc<SequenceHeader>>,
     pub(crate) frame_hdr: Option<Rc<FrameHeader>>,
-    pub(crate) tile_groups: Vec<TileGroup>,
+    pub(crate) tile: Vec<TileGroup>,
     pub(crate) n_tiles: i32,
     //pub(crate) refs: [RefState; 8],
 
@@ -169,7 +169,7 @@ impl<T: Pixel> Context<T> {
 
             seq_hdr: None,
             frame_hdr: None,
-            tile_groups: vec![],
+            tile: vec![],
             n_tiles: 0,
 
             apply_grain: false,

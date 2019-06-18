@@ -57,9 +57,9 @@ pub struct FrameContext {
     const uint8_t *prev_segmap;
     unsigned refpoc[7], refrefpoc[7][7];
     uint8_t gmv_warp_allowed[7];
-    CdfThreadContext in_cdf, out_cdf;
-    struct Dav1dTileGroup *tile;
-    int n_tile_data_alloc;
+    CdfThreadContext in_cdf, out_cdf;*/
+    pub(crate) tile: Vec<TileGroup>,
+    /*int n_tile_data_alloc;
     int n_tile_data;
 
     // for scalable references
@@ -120,6 +120,8 @@ impl Default for FrameContext {
         FrameContext {
             seq_hdr: None,
             frame_hdr: None,
+
+            tile: vec![],
 
             tc: vec![],
             n_tc: 0,

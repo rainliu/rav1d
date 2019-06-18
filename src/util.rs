@@ -11,6 +11,7 @@ use num_traits::*;
 use std::mem;
 use std::mem::size_of;
 use std::fmt::{Debug, Display};
+use std::{cmp, io};
 
 //TODO: Nice to have (although I wasnt able to find a way to do it yet in rust): zero-fill arrays that are
 // shorter than required.  Need const fn (Rust Issue #24111) or const generics (Rust RFC #2000)
@@ -198,4 +199,22 @@ pub fn clip<T: PartialOrd>(v: T, min: T, max: T) -> T {
   } else {
     v
   }
+}
+
+#[inline(always)]
+pub fn check_error(condition: bool, msg: &str) -> io::Result<()> {
+  if condition {
+    Err(io::Error::new(io::ErrorKind::InvalidInput, msg))
+  } else {
+    Ok(())
+  }
+}
+
+#[inline(always)]
+pub fn tile_log2(sz: i32, tgt: i32) -> i32 {
+  let mut k = 0;
+  while (sz << k) < tgt {
+    k += 1;
+  }
+  k
 }

@@ -14,26 +14,6 @@ use std::{cmp, io};
 use crate::headers::SequenceHeader;
 use num_traits::FromPrimitive;
 
-#[inline(always)]
-fn check_error(condition: bool, msg: &str) -> io::Result<()> {
-    if condition {
-        Err(io::Error::new(io::ErrorKind::InvalidInput, msg))
-    } else {
-        Ok(())
-    }
-}
-
-#[inline(always)]
-fn tile_log2(sz: i32, tgt: i32) -> i32 {
-    let mut k = 0;
-    while (sz << k) < tgt {
-        k += 1;
-    }
-    k
-}
-
-
-
 fn parse_seq_hdr(
     gb: &mut GetBits,
     hdr: &mut SequenceHeader,
@@ -1345,7 +1325,7 @@ impl<T: Pixel> Context<T> {
                     {
                         parse_frame_hdr(&mut gb, seq_hdr, Rc::make_mut(frame_hdr))?;
 
-                        self.tile_groups = vec![];
+                        self.tile = vec![];
                         self.n_tiles = 0;
 
                         if t != ObuType::OBU_FRAME {
@@ -1392,13 +1372,13 @@ impl<T: Pixel> Context<T> {
 
                     parse_tile_hdr(
                         &mut gb,
-                        &mut self.tile_groups,
+                        &mut self.tile,
                         self.frame_hdr.as_ref().unwrap(),
                     );
 
                     gb.check_for_overrun(init_bit_pos as u32, len as u32)?;
 
-                    if let Some(last) = self.tile_groups.last_mut() {
+                    if let Some(last) = self.tile.last_mut() {
                         // The current bit position is a multiple of 8 (because we
                         // just aligned it) and less than 8*pkt_bytelen because
                         // otherwise the overrun check would have fired.
@@ -1439,7 +1419,7 @@ impl<T: Pixel> Context<T> {
             if frame_hdr.show_existing_frame {
                 unimplemented!();
             } else {
-                check_error(self.tile_groups.is_empty(), "tile_groups.is_empty()")?;
+                check_error(self.tile.is_empty(), "tile_groups.is_empty()")?;
 
                 self.submit_frame()?;
 
