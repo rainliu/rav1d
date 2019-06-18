@@ -8,6 +8,14 @@ use std::ops::{Index, IndexMut, Range};
 use crate::plane_region::*;
 use crate::util::*;
 
+pub enum PlaneType {
+  PLANE_TYPE_Y,
+  PLANE_TYPE_UV,
+  PLANE_TYPE_BLOCK,
+  PLANE_TYPE_ALL,
+}
+
+
 /// Plane-specific configuration.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlaneConfig {

@@ -467,7 +467,7 @@ fn parse_frame_hdr(
     } else {
         0
     };
-    hdr.primary_ref_frame = if !hdr.error_resilient_mode && hdr.frame_is_intra() {
+    hdr.primary_ref_frame = if !hdr.error_resilient_mode && !hdr.frame_is_intra() {
         gb.get_bits(3)
     } else {
         PRIMARY_REF_NONE as u32
@@ -944,7 +944,7 @@ fn parse_frame_hdr(
         gb.get_bits_pos() - init_bit_pos
     );
 
-    hdr.switchable_comp_refs = if hdr.frame_is_intra() {
+    hdr.switchable_comp_refs = if !hdr.frame_is_intra() {
         gb.get_bits(1) != 0
     } else {
         false
@@ -955,7 +955,7 @@ fn parse_frame_hdr(
     );
 
     hdr.skip_mode_allowed = false;
-    if hdr.switchable_comp_refs && hdr.frame_is_intra() && seqhdr.order_hint {
+    if hdr.switchable_comp_refs && !hdr.frame_is_intra() && seqhdr.order_hint {
         unimplemented!();
         /*let poc = hdr.frame_offset;
         let off_before: [u32;2] = [ 0xFFFFFFFF, 0xFFFFFFFF ];
@@ -1018,7 +1018,7 @@ fn parse_frame_hdr(
     );
 
     hdr.warp_motion = !hdr.error_resilient_mode
-        && hdr.frame_is_intra()
+        && !hdr.frame_is_intra()
         && seqhdr.warped_motion
         && gb.get_bits(1) != 0;
     rav1d_log!(
@@ -1036,7 +1036,7 @@ fn parse_frame_hdr(
         hdr.gmv[i] = WarpedMotionParams::default();
     }
 
-    if hdr.frame_is_intra() {
+    if !hdr.frame_is_intra() {
         for i in 0..7 {
             hdr.gmv[i].t = if gb.get_bits(1) == 0 {
                 WarpedMotionType::WM_TYPE_IDENTITY

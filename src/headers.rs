@@ -757,6 +757,6 @@ pub struct FrameHeader {
 
 impl FrameHeader{
     pub(crate) fn frame_is_intra(&self) -> bool {
-        (self.frame_type as u8 & 1) != 0
+        (self.frame_type as u8 & 1) == 0
     }
 }

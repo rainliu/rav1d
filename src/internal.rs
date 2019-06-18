@@ -7,15 +7,37 @@ use crate::util::*;
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct TileGroup {
-    pub data_offset: usize,
-    pub data_sz: usize,
-    pub start: i32,
-    pub end: i32,
+    pub(crate) data_offset: usize,
+    pub(crate) data_sz: usize,
+    pub(crate) start: i32,
+    pub(crate) end: i32,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 #[repr(C)]
-pub struct loopfilter {
+pub struct FrameThread {
+    //struct thread_data td;
+    pub(crate) pass: i32,
+    pub(crate) die: i32,
+    // indexed using t->by * f->b4_stride + t->bx
+    /*Av1Block *b;
+    struct CodedBlockInfo {
+        int16_t eob[3 /* plane */];
+        uint8_t txtp[3 /* plane */];
+    } *cbi;
+    int8_t *txtp;
+    // indexed using (t->by >> 1) * (f->b4_stride >> 1) + (t->bx >> 1)
+    uint16_t (*pal)[3 /* plane */][8 /* idx */];
+    // iterated over inside tile state
+    uint8_t *pal_idx;
+    coef *cf;
+    // start offsets per tile
+    int *tile_start_off;*/
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
+#[repr(C)]
+pub struct LoopFilter {
     /*uint8_t (*level)[4];
     Av1Filter *mask;
     Av1Restoration *lr_mask;
@@ -101,7 +123,9 @@ pub struct FrameContext {
     pub(crate) dq: AlignedArray<[[[u16; 2]; 3]; MAX_SEGMENTS]>,
     //pub(crate) qm: [[[u8;2 /* is_1d */]; RectTxfmSize::N_RECT_TX_SIZES as usize];3 /* plane */],
     pub(crate) a: Vec<BlockContext>,
-    pub(crate) lf: loopfilter,
+
+    pub(crate) frame_thread: FrameThread,
+    pub(crate) lf: LoopFilter,
     /*
     // threading (refer to tc[] for per-thread things)
     struct FrameTileThreadData {
@@ -139,7 +163,9 @@ impl Default for FrameContext {
             sr_sb128w: 0,
             dq: UninitializedAlignedArray(),
             a: vec![],
-            lf: loopfilter::default(),
+
+            frame_thread: FrameThread::default(),
+            lf: LoopFilter::default(),
         }
     }
 }

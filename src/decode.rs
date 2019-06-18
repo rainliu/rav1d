@@ -5,6 +5,7 @@ use crate::getbits::*;
 use crate::headers::*;
 use crate::internal::*;
 use crate::levels::*;
+use crate::plane::PlaneType;
 use crate::util::*;
 
 use std::rc::Rc;
@@ -37,6 +38,33 @@ fn init_quant_tables(
         dq.array[i][2][0] = dq_tbl[seq_hdr.hbd as usize][vdc as usize][0];
         dq.array[i][2][1] = dq_tbl[seq_hdr.hbd as usize][vac as usize][1];
     }
+}
+
+fn reset_context(ctx: &mut BlockContext, keyframe: bool, pass: i32) {
+    /*memset(ctx->intra, keyframe, sizeof(ctx->intra));
+    memset(ctx->uvmode, DC_PRED, sizeof(ctx->uvmode));
+    if (keyframe)
+        memset(ctx->mode, DC_PRED, sizeof(ctx->mode));
+
+    if (pass == 2) return;
+
+    memset(ctx->partition, 0, sizeof(ctx->partition));
+    memset(ctx->skip, 0, sizeof(ctx->skip));
+    memset(ctx->skip_mode, 0, sizeof(ctx->skip_mode));
+    memset(ctx->tx_lpf_y, 2, sizeof(ctx->tx_lpf_y));
+    memset(ctx->tx_lpf_uv, 1, sizeof(ctx->tx_lpf_uv));
+    memset(ctx->tx_intra, -1, sizeof(ctx->tx_intra));
+    memset(ctx->tx, TX_64X64, sizeof(ctx->tx));
+    if (!keyframe) {
+        memset(ctx->ref, -1, sizeof(ctx->ref));
+        memset(ctx->comp_type, 0, sizeof(ctx->comp_type));
+        memset(ctx->mode, NEARESTMV, sizeof(ctx->mode));
+    }
+    memset(ctx->lcoef, 0x40, sizeof(ctx->lcoef));
+    memset(ctx->ccoef, 0x40, sizeof(ctx->ccoef));
+    memset(ctx->filter, DAV1D_N_SWITCHABLE_FILTERS, sizeof(ctx->filter));
+    memset(ctx->seg_pred, 0, sizeof(ctx->seg_pred));
+    memset(ctx->pal_sz, 0, sizeof(ctx->pal_sz));*/
 }
 
 fn setup_tile(
@@ -197,7 +225,7 @@ impl<T: Pixel> Context<T> {
         }
 
         // init ref mvs
-        if frame_hdr.frame_is_intra() || frame_hdr.allow_intrabc {
+        if !frame_hdr.frame_is_intra() || frame_hdr.allow_intrabc {
             //TODO: add ref mv related code
         }
 
@@ -284,6 +312,35 @@ impl<T: Pixel> Context<T> {
                 data_offset += tile_sz;
                 size -= tile_sz;
             }
+        }
+
+        // 2-pass decoding:
+        // - enabled for frame-threading, so that one frame can do symbol parsing
+        //   as another (or multiple) are doing reconstruction. One advantage here
+        //   is that although reconstruction is limited by reference availability,
+        //   symbol parsing is not. Therefore, symbol parsing can effectively use
+        //   row and col tile threading, but reconstruction only col tile threading;
+        // - pass 0 means no 2-pass;
+        // - pass 1 means symbol parsing only;
+        // - pass 2 means reconstruction and loop filtering.
+        let uses_2pass = (self.n_fc > 1 && frame_hdr.refresh_context) as i32;
+        f.frame_thread.pass = uses_2pass;
+        while f.frame_thread.pass <= 2 * uses_2pass {
+            let progress_plane_type = match f.frame_thread.pass {
+                0 => PlaneType::PLANE_TYPE_ALL,
+                1 => PlaneType::PLANE_TYPE_BLOCK,
+                _ => PlaneType::PLANE_TYPE_Y,
+            };
+
+            for n in 0..f.sb128w * frame_hdr.tiling.rows {
+                reset_context(
+                    &mut f.a[n as usize],
+                    frame_hdr.frame_is_intra(),
+                    f.frame_thread.pass,
+                );
+            }
+
+            f.frame_thread.pass += 1;
         }
 
         Ok(())
