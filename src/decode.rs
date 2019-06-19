@@ -41,30 +41,49 @@ fn init_quant_tables(
 }
 
 fn reset_context(ctx: &mut BlockContext, keyframe: bool, pass: i32) {
-    /*memset(ctx->intra, keyframe, sizeof(ctx->intra));
-    memset(ctx->uvmode, DC_PRED, sizeof(ctx->uvmode));
-    if (keyframe)
-        memset(ctx->mode, DC_PRED, sizeof(ctx->mode));
-
-    if (pass == 2) return;
-
-    memset(ctx->partition, 0, sizeof(ctx->partition));
-    memset(ctx->skip, 0, sizeof(ctx->skip));
-    memset(ctx->skip_mode, 0, sizeof(ctx->skip_mode));
-    memset(ctx->tx_lpf_y, 2, sizeof(ctx->tx_lpf_y));
-    memset(ctx->tx_lpf_uv, 1, sizeof(ctx->tx_lpf_uv));
-    memset(ctx->tx_intra, -1, sizeof(ctx->tx_intra));
-    memset(ctx->tx, TX_64X64, sizeof(ctx->tx));
-    if (!keyframe) {
-        memset(ctx->ref, -1, sizeof(ctx->ref));
-        memset(ctx->comp_type, 0, sizeof(ctx->comp_type));
-        memset(ctx->mode, NEARESTMV, sizeof(ctx->mode));
+    (&mut ctx.intra.array)
+        .iter_mut()
+        .map(|x| *x = keyframe as u8);
+    (&mut ctx.uvmode.array)
+        .iter_mut()
+        .map(|x| *x = IntraPredMode::DC_PRED as u8);
+    if keyframe {
+        (&mut ctx.mode.array)
+            .iter_mut()
+            .map(|x| *x = IntraPredMode::DC_PRED as u8);
     }
-    memset(ctx->lcoef, 0x40, sizeof(ctx->lcoef));
-    memset(ctx->ccoef, 0x40, sizeof(ctx->ccoef));
-    memset(ctx->filter, DAV1D_N_SWITCHABLE_FILTERS, sizeof(ctx->filter));
-    memset(ctx->seg_pred, 0, sizeof(ctx->seg_pred));
-    memset(ctx->pal_sz, 0, sizeof(ctx->pal_sz));*/
+    if pass == 2 {
+        return;
+    }
+
+    (&mut ctx.partition.array).iter_mut().map(|x| *x = 0);
+    (&mut ctx.skip.array).iter_mut().map(|x| *x = 0);
+    (&mut ctx.skip_mode.array).iter_mut().map(|x| *x = 0);
+    (&mut ctx.tx_lpf_y.array).iter_mut().map(|x| *x = 2);
+    (&mut ctx.tx_lpf_uv.array).iter_mut().map(|x| *x = 1);
+    (&mut ctx.tx_intra.array).iter_mut().map(|x| *x = -1);
+    (&mut ctx.tx.array)
+        .iter_mut()
+        .map(|x| *x = TxfmSize::TX_64X64 as i8);
+    if !keyframe {
+        (&mut ctx.ref_frame.array[0]).iter_mut().map(|x| *x = -1);
+        (&mut ctx.ref_frame.array[1]).iter_mut().map(|x| *x = -1);
+        (&mut ctx.comp_type.array).iter_mut().map(|x| *x = 0);
+        (&mut ctx.mode.array)
+            .iter_mut()
+            .map(|x| *x = InterPredMode::NEARESTMV as u8);
+    }
+    (&mut ctx.lcoef.array).iter_mut().map(|x| *x = 0x40);
+    (&mut ctx.ccoef.array[0]).iter_mut().map(|x| *x = 0x40);
+    (&mut ctx.ccoef.array[1]).iter_mut().map(|x| *x = 0x40);
+    (&mut ctx.filter.array[0])
+        .iter_mut()
+        .map(|x| *x = FilterMode::N_SWITCHABLE_FILTERS_OR_FILTER_BILINEAR as u8);
+    (&mut ctx.filter.array[1])
+        .iter_mut()
+        .map(|x| *x = FilterMode::N_SWITCHABLE_FILTERS_OR_FILTER_BILINEAR as u8);
+    (&mut ctx.seg_pred.array).iter_mut().map(|x| *x = 0);
+    (&mut ctx.pal_sz.array).iter_mut().map(|x| *x = 0);
 }
 
 fn setup_tile(
@@ -150,6 +169,79 @@ fn setup_tile(
         //TODO
         //atomic_init(&ts.progress, row_sb_start);
     }
+}
+
+fn decode_tile_sbrow(
+    seq_hdr: &SequenceHeader,
+    frame_hdr: &FrameHeader,
+    t: &mut TileContext,
+    ts: &TileState,
+    sb_step: i32,
+    pass: i32,
+    n_fc: usize,
+) -> io::Result<()> {
+    let root_bl = if seq_hdr.sb128 {
+        BlockLevel::BL_128X128
+    } else {
+        BlockLevel::BL_64X64
+    };
+
+    let (tile_row, tile_col) = (ts.tiling.row, ts.tiling.col);
+    let col_sb_start = frame_hdr.tiling.col_start_sb[tile_col as usize] as i32;
+    let col_sb128_start = col_sb_start >> (!seq_hdr.sb128) as i32;
+
+    reset_context(&mut t.l, frame_hdr.frame_is_intra(), pass);
+    if pass == 2 {
+        unimplemented!();
+    }
+
+    // error out on symbol decoder overread
+    // TODO: if (ts->msac.cnt < -15) return 1;
+
+    if n_fc > 1 && frame_hdr.use_ref_frame_mvs {
+        unimplemented!()
+    }
+    (&mut t.pal_sz_uv[1]).iter_mut().map(|x| *x = 0);
+    let sb128y = t.by >> 5;
+
+    t.bx = ts.tiling.col_start;
+    //t->a = f->a + col_sb128_start + tile_row * f->sb128w,
+    //t.lf_mask = f.lf.mask + sb128y * f->sb128w + col_sb128_start;
+    while t.bx < ts.tiling.col_end {
+        //if (atomic_load_explicit(c->frame_thread.flush, memory_order_acquire))
+        //            return 1;
+        /*
+        if root_bl == BlockLevel::BL_128X128 {
+            t.cur_sb_cdef_idx_ptr = t.lf_mask.cdef_idx;
+            t.cur_sb_cdef_idx_ptr[0] = -1;
+            t.cur_sb_cdef_idx_ptr[1] = -1;
+            t.cur_sb_cdef_idx_ptr[2] = -1;
+            t.cur_sb_cdef_idx_ptr[3] = -1;
+        } else {
+            t.cur_sb_cdef_idx_ptr =
+                &t->lf_mask->cdef_idx[((t->bx & 16) >> 4) +
+            ((t->by & 16) >> 3)];
+            t.cur_sb_cdef_idx_ptr[0] = -1;
+        }*/
+
+        // Restoration filter
+        for p in 0..3 {
+            if frame_hdr.restoration.t[p] == RestorationType::RESTORATION_NONE {
+                continue;
+            }
+            unimplemented!();
+        }
+
+        //decode_sb(t, root_bl, c->intra_edge.root[root_bl])?;
+
+        if (t.bx & 16) != 0 || seq_hdr.sb128 {
+            //t.a++;
+            //t.lf_mask++;
+        }
+
+        t.bx += sb_step;
+    }
+    Ok(())
 }
 
 impl<T: Pixel> Context<T> {
@@ -341,6 +433,46 @@ impl<T: Pixel> Context<T> {
             }
 
             f.frame_thread.pass += 1;
+        }
+
+        if f.n_tc == 1 {
+            let t = f.tc.first_mut().unwrap();
+
+            // no tile threading - we explicitly interleave tile/sbrow decoding
+            // and post-filtering, so that the full process runs in-line, so
+            // that frame threading is still possible
+            for tile_row in 0..frame_hdr.tiling.rows {
+                let sbh_end = cmp::min(
+                    frame_hdr.tiling.row_start_sb[tile_row as usize + 1] as i32,
+                    f.sbh,
+                );
+                for sby in frame_hdr.tiling.row_start_sb[tile_row as usize] as i32..sbh_end {
+                    t.by = sby << (4 + seq_hdr.sb128 as i32);
+                    for tile_col in 0..frame_hdr.tiling.cols {
+                        let ts = &f.ts[(tile_row * frame_hdr.tiling.cols + tile_col) as usize];
+
+                        decode_tile_sbrow(
+                            seq_hdr,
+                            frame_hdr,
+                            t,
+                            ts,
+                            f.sb_step,
+                            f.frame_thread.pass,
+                            self.n_fc,
+                        )?;
+                    }
+
+                    // loopfilter + cdef + restoration
+                    if f.frame_thread.pass != 1 {
+                        unimplemented!();
+                        //f -> bd_fn.filter_sbrow(f, sby);
+                    }
+                    //dav1d_thread_picture_signal(&f->sr_cur, (sby + 1) * f->sb_step * 4,
+                    //                            progress_plane_type);
+                }
+            }
+        } else {
+            unimplemented!();
         }
 
         Ok(())

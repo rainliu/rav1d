@@ -34,10 +34,8 @@ pub enum FilterMode {
     FILTER_8TAP_REGULAR,
     FILTER_8TAP_SMOOTH,
     FILTER_8TAP_SHARP,
-    N_SWITCHABLE_FILTERS,
-    //FILTER_BILINEAR = N_SWITCHABLE_FILTERS,
-    N_FILTERS,
-    //FILTER_SWITCHABLE = N_FILTERS,
+    N_SWITCHABLE_FILTERS_OR_FILTER_BILINEAR,
+    N_FILTERS_OR_FILTER_SWITCHABLE,
 }
 
 impl Default for FilterMode {
@@ -735,7 +733,7 @@ pub struct FrameHeader {
     pub(crate) hp: bool,
     pub(crate) subpel_filter_mode: FilterMode,
     pub(crate) switchable_motion_mode: isize,
-    pub(crate) use_ref_frame_mvs: isize,
+    pub(crate) use_ref_frame_mvs: bool,
     pub(crate) refresh_context: bool,
     pub(crate) tiling: Tiling,
     pub(crate) quant: Quant,

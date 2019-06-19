@@ -9,6 +9,7 @@ pub mod getbits;
 pub mod headers;
 pub mod internal;
 pub mod levels;
+pub mod lf_mask;
 pub mod macros;
 pub mod obu;
 pub mod plane;

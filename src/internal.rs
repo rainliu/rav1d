@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::fmt;
 
 use crate::headers::*;
 use crate::levels::*;
@@ -212,62 +213,66 @@ pub struct TileState {
     Av1RestorationUnit *lr_ref[3];*/
 }
 
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Default)]
 #[repr(C)]
 pub struct TileContext {
-    /*const Dav1dFrameContext *f;
-Dav1dTileState *ts;
-int bx, by;
-BlockContext l, *a;
-coef *cf;
-pixel *emu_edge; // stride=192 for non-SVC, or 320 for SVC
-// FIXME types can be changed to pixel (and dynamically allocated)
-// which would make copy/assign operations slightly faster?
-uint16_t al_pal[2 /* a/l */][32 /* bx/y4 */][3 /* plane */][8 /* palette_idx */];
-ALIGN(uint16_t pal[3 /* plane */][8 /* palette_idx */], 16);
-uint8_t pal_sz_uv[2 /* a/l */][32 /* bx4/by4 */];
-uint8_t txtp_map[32 * 32]; // inter-only
-Dav1dWarpedMotionParams warpmv;
-union {
-void *mem;
-uint8_t *pal_idx;
-int16_t *ac;
-pixel *interintra, *lap;
-int16_t *compinter;
-} scratch;
-ALIGN(uint8_t scratch_seg_mask[128 * 128], 32);
+    //const Dav1dFrameContext *f;
+    //pub(crate) ts: TileState,
+    pub(crate) bx: i32,
+    pub(crate) by: i32,
+    pub(crate) l: BlockContext,
+    /* *a;
+    coef *cf;
+    pixel *emu_edge; // stride=192 for non-SVC, or 320 for SVC
+    // FIXME types can be changed to pixel (and dynamically allocated)
+    // which would make copy/assign operations slightly faster?
+    uint16_t al_pal[2 /* a/l */][32 /* bx/y4 */][3 /* plane */][8 /* palette_idx */];
+    ALIGN(uint16_t pal[3 /* plane */][8 /* palette_idx */], 16);*/
+    pub(crate)  pal_sz_uv: [[u32;32 /* bx4/by4 */]; 2 /* a/l */],
+    /*
+    uint8_t txtp_map[32 * 32]; // inter-only
+    Dav1dWarpedMotionParams warpmv;
+    union {
+    void *mem;
+    uint8_t *pal_idx;
+    int16_t *ac;
+    pixel *interintra, *lap;
+    int16_t *compinter;
+    } scratch;
+    ALIGN(uint8_t scratch_seg_mask[128 * 128], 32);
+*/
+    //lf_mask: Av1Filter,
+    //cur_sb_cdef_idx_ptr: &[i8],
+    // for chroma sub8x8, we need to know the filter for all 4 subblocks in
+    // a 4x4 area, but the top/left one can go out of cache already, so this
+    // keeps it accessible
+  /*  enum Filter2d tl_4x4_filter;
 
-Av1Filter *lf_mask;
-int8_t *cur_sb_cdef_idx_ptr;
-// for chroma sub8x8, we need to know the filter for all 4 subblocks in
-// a 4x4 area, but the top/left one can go out of cache already, so this
-// keeps it accessible
-enum Filter2d tl_4x4_filter;
-
-struct {
-struct thread_data td;
-struct FrameTileThreadData *fttd;
-int die;
-} tile_thread;*/}
+    struct {
+    struct thread_data td;
+    struct FrameTileThreadData *fttd;
+    int die;
+    } tile_thread;*/
+}
 
 #[derive(Clone, Default)]
 #[repr(C)]
 pub struct BlockContext {
-    mode: AlignedArray<[u8; 32]>,
-    lcoef: AlignedArray<[u8; 32]>,
-    ccoef: AlignedArray<[[u8; 32]; 2]>,
-    seg_pred: AlignedArray<[u8; 32]>,
-    skip: AlignedArray<[u8; 32]>,
-    skip_mode: AlignedArray<[u8; 32]>,
-    intra: AlignedArray<[u8; 32]>,
-    comp_type: AlignedArray<[u8; 32]>,
-    ref_frame: AlignedArray<[[i8; 32]; 2]>, // -1 means intra
-    filter: AlignedArray<[[u8; 32]; 2]>,    // 3 means unset
-    tx_intra: AlignedArray<[i8; 32]>,
-    tx: AlignedArray<[i8; 32]>,
-    tx_lpf_y: AlignedArray<[u8; 32]>,
-    tx_lpf_uv: AlignedArray<[u8; 32]>,
-    partition: AlignedArray<[u8; 16]>,
-    uvmode: AlignedArray<[u8; 32]>,
-    pal_sz: AlignedArray<[u8; 32]>,
+    pub(crate) mode: AlignedArray<[u8; 32]>,
+    pub(crate) lcoef: AlignedArray<[u8; 32]>,
+    pub(crate) ccoef: AlignedArray<[[u8; 32]; 2]>,
+    pub(crate) seg_pred: AlignedArray<[u8; 32]>,
+    pub(crate) skip: AlignedArray<[u8; 32]>,
+    pub(crate) skip_mode: AlignedArray<[u8; 32]>,
+    pub(crate) intra: AlignedArray<[u8; 32]>,
+    pub(crate) comp_type: AlignedArray<[u8; 32]>,
+    pub(crate) ref_frame: AlignedArray<[[i8; 32]; 2]>, // -1 means intra
+    pub(crate) filter: AlignedArray<[[u8; 32]; 2]>,    // 3 means unset
+    pub(crate) tx_intra: AlignedArray<[i8; 32]>,
+    pub(crate) tx: AlignedArray<[i8; 32]>,
+    pub(crate) tx_lpf_y: AlignedArray<[u8; 32]>,
+    pub(crate) tx_lpf_uv: AlignedArray<[u8; 32]>,
+    pub(crate) partition: AlignedArray<[u8; 16]>,
+    pub(crate) uvmode: AlignedArray<[u8; 32]>,
+    pub(crate) pal_sz: AlignedArray<[u8; 32]>,
 }

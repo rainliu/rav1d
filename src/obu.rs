@@ -507,7 +507,7 @@ fn parse_frame_hdr(
         hdr.allow_intrabc = hdr.allow_screen_content_tools != AdaptiveBoolean::OFF
             && !hdr.super_res.enabled
             && gb.get_bits(1) != 0;
-        hdr.use_ref_frame_mvs = 0;
+        hdr.use_ref_frame_mvs = false;
     } else {
         unimplemented!();
     }
